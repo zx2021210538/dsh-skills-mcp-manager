@@ -164,7 +164,9 @@ description:
 
 ### 4.3 截图
 
-截图不写在目录条目里，而是放在**仓库根目录**的 `screenshots.json`（本仓库已加）：
+截图不写在目录条目里，而是放在**仓库根目录**的 `screenshots.json`。本仓库暂未提交该文件：
+`node scripts/screenshots.mjs` 生成真实图片到 `docs/images/` 之后，再把下面这份清单一起提交，
+避免条目引用不存在的图片。
 
 ```json
 ["docs/images/mcp-panel.png", "docs/images/skills-panel.png"]

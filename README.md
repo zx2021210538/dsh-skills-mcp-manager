@@ -4,9 +4,10 @@
 
 **在 DSH 的设置面板里管理「技能」与「MCP 服务器」——全局 / 项目级分层，改完即生效**
 
-[![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%20实测-4c6ef5)](#)
+[![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%20实测-4c6ef5)](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/npm%20test-passing-2ea043)](#)
+[![ci](https://github.com/zx2021210538/dsh-skills-mcp-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/zx2021210538/dsh-skills-mcp-manager/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/zx2021210538/dsh-skills-mcp-manager)](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/latest)
 [![runtime deps](https://img.shields.io/badge/运行时依赖-0-8a8f99)](#工作原理)
 
 </div>
