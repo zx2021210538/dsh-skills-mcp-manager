@@ -1,0 +1,599 @@
+/*
+ * Panel styles. Kept in its own file and inlined into lib/client.js by
+ * esbuild (`loader: { ".css": "text" }`), because DSH's ModuleLoader evaluates
+ * exactly one file per client bundle.
+ */
+.smp-page{box-sizing:border-box;width:100%;color:var(--dsw-alias-label-primary);flex-direction:column;align-items:center;gap:14px;display:flex}
+.smp-page>*{width:100%;max-width:960px}
+.smp-pageHead{box-sizing:border-box;justify-content:space-between;align-items:flex-start;gap:16px;display:flex}
+.smp-pageTitle{margin:0;font-size:18px;font-weight:500;line-height:26px}
+.smp-pageIntro{color:var(--dsw-alias-label-secondary);align-items:center;gap:4px;margin:4px 0 0;font-size:13px;line-height:20px;display:flex}
+.smp-input,.smp-select,.smp-textarea{box-sizing:border-box;font:inherit;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);padding:0 10px;height:32px;font-size:13px}
+.smp-textarea{height:auto;min-height:84px;padding:8px 10px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.smp-input:focus-visible,.smp-select:focus-visible,.smp-textarea:focus-visible{outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:1px}
+.smp-tabs{display:flex;gap:24px;border-bottom:.5px solid var(--dsw-alias-border-l2)}
+.smp-tab{appearance:none;background:none;border:0;padding:0 2px 10px;font:inherit;font-size:14px;line-height:22px;color:var(--dsw-alias-label-tertiary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.smp-tab[data-active=true]{color:var(--dsw-alias-label-primary);border-bottom-color:var(--dsw-alias-label-primary)}
+.smp-filterRow{display:flex;align-items:center;gap:8px}
+.smp-search{flex:1 1 auto;min-width:140px;color:var(--dsw-alias-label-tertiary);align-items:center;display:flex;position:relative}
+.smp-searchIcon{position:absolute;left:12px;display:inline-flex;pointer-events:none}
+.smp-searchInput{box-sizing:border-box;width:100%;height:36px;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);padding:0 12px 0 36px}
+.smp-searchInput::placeholder{color:var(--dsw-alias-label-tertiary)}
+/* 作用域选择器（表单内）：下拉 + 自定义路径输入并排，跟随表单字段宽度。 */
+.smp-scopePick{display:flex;flex-direction:column;gap:6px;min-width:0}
+.smp-scopePick .smp-select{width:100%}
+.smp-scopePick .smp-input{width:100%}
+.smp-group{flex-direction:column;gap:10px;display:flex;border-top:.5px solid var(--dsw-alias-border-l2);padding-top:0}
+.smp-group:first-of-type{border-top:0;padding-top:0}
+.smp-groupTitleRow{align-items:center;gap:8px;min-height:36px;display:flex}
+.smp-groupTitle{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:600;line-height:22px}
+.smp-groupSub{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;flex-wrap:wrap;row-gap:4px;margin:-6px 0 0 20px;font-size:12px;line-height:18px;display:flex}
+.smp-summaryAbove{margin:0}
+.smp-chevron{color:var(--dsw-alias-label-tertiary);flex:none;transition:transform .14s ease-in-out}
+.smp-chevron[data-open=false]{transform:rotate(-90deg)}
+/* Rows follow the Models settings page: one column list, head row with the
+   actions pinned right, and an open body that can hold arbitrarily long text. */
+.smp-cards{flex-direction:column;gap:14px;margin:0;padding:0;list-style:none;display:flex}
+.smp-card{border:.5px solid var(--dsw-alias-settings-card-stroke);background:var(--dsw-alias-settings-card-fill);border-radius:var(--dsw-radius-xl);flex-direction:column;gap:4px;padding:12px 14px;min-width:0;display:flex}
+/* 卡片分两列：左列是「标题行 + 描述」，右列是操作区。整行垂直居中对齐，
+   这样开关/菜单与两行内容居中，而不是只跟标题那一行居中（那会偏上）。
+   展开的详情在 cardRow 之外，占满整行宽度。 */
+.smp-cardRow{align-items:center;gap:10px;min-width:0;display:flex}
+.smp-cardMain{flex:1 1 auto;min-width:0;flex-direction:column;gap:4px;display:flex}
+.smp-cardHead+.smp-cardDescription{margin-top:0}
+.smp-cardHead{align-items:center;gap:10px;min-width:0;display:flex}
+.smp-cardToggle{box-sizing:border-box;color:inherit;font:inherit;text-align:left;cursor:pointer;background:0 0;border:0;align-items:center;gap:8px;min-width:0;padding:0;display:inline-flex}
+.smp-cardIdentity{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px;min-width:0;overflow-wrap:anywhere}
+.smp-cardEnd{flex:none;align-items:center;gap:8px;display:inline-flex}
+.smp-cardActions{align-items:center;gap:4px;margin-left:auto;flex:none;display:inline-flex}
+.smp-cardActions .smp-actionsRow{margin:0;gap:4px}
+.smp-cardActions .smp-button{box-sizing:border-box;height:28px;padding:0 10px;font-size:12px;line-height:18px;border-radius:var(--dsw-radius-sm)}
+.smp-cardDescription{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;white-space:pre-wrap;overflow-wrap:anywhere}
+.smp-cardDetails{border-top:.5px solid var(--dsw-alias-border-l2);padding:12px 0 0}
+.smp-card>.smp-cardDetails:first-child{border-top:0;padding-top:0}
+.smp-formGrid:first-child{margin-top:0}
+.smp-cardDetails .smp-details{margin:0}
+.smp-details{grid-template-columns:76px minmax(0,1fr);gap:6px 10px;margin:8px 0 0;display:grid;font-size:12px;line-height:18px}
+.smp-detailsKey{color:var(--dsw-alias-label-tertiary)}
+/* 值是**数据**，键才是说明。两者都用灰时整块读起来是一片低对比文字，
+   分不清哪个是标签、哪个是内容 —— 值用主色（正文黑），键保留三级灰。 */
+.smp-detailsValue{color:var(--dsw-alias-label-primary);word-break:break-all;font-weight:400}
+.smp-tag{display:inline-flex;align-items:center;border-radius:999px;padding:1px 8px;font-size:11px;line-height:17px;font-weight:500;white-space:nowrap}
+.smp-tag[data-tone=neutral]{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary)}
+/* 连接状态标签的三档语气。
+   danger 一档必须真的显眼：它出现的场景正是「这个 MCP 已经永久失效、要用户动手」，
+   而这个问题以前在界面上完全不可见（工具凭空消失，没有任何说明）。
+   主题里没有 error-tertiary 背景，所以用描边而不是填色来拉开对比。 */
+.smp-tag[data-tone=ok]{background:var(--dsw-alias-state-success-tertiary,var(--dsw-alias-bg-module-platform));color:var(--dsw-alias-state-success-primary,#067647)}
+.smp-tag[data-tone=warn]{background:var(--dsw-alias-state-warn-tertiary,var(--dsw-alias-bg-module-platform));color:var(--dsw-alias-state-warn-primary,#b54708)}
+.smp-tag[data-tone=danger]{background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-state-error-primary,#d92d20);box-shadow:inset 0 0 0 1px var(--dsw-alias-state-error-primary,#d92d20)}
+/* 连接状态：小圆点 + 小号文字（照 Chrome 扩展列表那种形态）。
+   取代了原来的药丸标签：药丸的视觉重量与卡片自己的标签一样重，
+   于是「一切正常」看起来也像个警告，而真正的警告反而混进了装饰里。
+   圆点承担颜色，文字承担含义，权重让开 —— 所以文字取 10px，比正文小一档。 */
+.smp-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;line-height:16px;white-space:nowrap}
+.smp-dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-label-tertiary,currentColor)}
+.smp-dot[data-dot=ok]{background:var(--dsw-alias-state-success-primary,#067647)}
+.smp-dot[data-dot=warn]{background:var(--dsw-alias-state-warn-primary,#b54708)}
+.smp-dot[data-dot=danger]{background:var(--dsw-alias-state-error-primary,#d92d20)}
+.smp-dot[data-dot=neutral]{background:var(--dsw-alias-label-tertiary,#9aa4b2)}
+.smp-statusText{color:var(--dsw-alias-label-secondary)}
+/* 数字（工具数 / 剩余时间）退到第三层：它们是佐证，不是状态本身。 */
+.smp-statusMeta{color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary))}
+/* danger 一档的文字要跟上圆点：它出现的场景正是「这个 MCP 已经永久失效、要用户动手」，
+   而这个问题以前在界面上完全不可见（工具凭空消失，没有任何说明）。
+   黄一档不上色：「连接中」是常态，「需要授权」也不是故障，加重它们只会制造噪音。 */
+.smp-status:has(.smp-dot[data-dot=danger]) .smp-statusText{color:var(--dsw-alias-state-error-primary,#d92d20)}
+/* 小号开关：替代「启用 / 停用」两个按钮。
+   按钮只说「点了我做什么」，开关同时说「现在是哪一档」—— 一列卡片扫下来能直接看出
+   哪些是开着的。竖直居中，与它所在行的文字基线对齐。 */
+.smp-switch{box-sizing:border-box;flex:none;width:26px;height:15px;border-radius:999px;border:0;padding:0;cursor:pointer;position:relative;background:var(--dsw-alias-border-l3,#cbd2d9);transition:background .12s ease}
+.smp-switch[data-on=true]{background:var(--dsw-alias-state-success-primary,#067647)}
+.smp-switch:disabled{opacity:.5;cursor:default}
+.smp-switchKnob{position:absolute;top:1.5px;left:1.5px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .12s ease}
+.smp-switch[data-on=true] .smp-switchKnob{transform:translateX(11px)}
+.smp-switch:focus-visible{outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}
+/* 「…」+ 竖向菜单：把 重连/编辑/删除 收进一个 popup。
+   三个按钮并排时操作区比它所属的名字还宽，两列网格下会把服务器名挤出视野。
+   菜单让这一行保持安静，而「删除」这种很少用的动作本来就该多一次点击。 */
+.smp-more{position:relative;display:inline-flex;flex:none}
+.smp-moreTrigger{box-sizing:border-box;width:22px;height:22px;border:0;border-radius:var(--dsw-radius-sm);background:0 0;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:15px;line-height:1;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.smp-moreTrigger:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.smp-moreTrigger:disabled{opacity:.5;cursor:default}
+/* 遮罩挡住页面其余部分的点击：菜单不该在一次无关点击后还开着，
+   否则下一次点击会落在用户没打算打开的菜单项上。 */
+.smp-menuScrim{position:fixed;inset:0;z-index:40}
+/* 弹出菜单。
+   默认这一套是**兜底**：量不到触发按钮位置时（离线渲染、没有布局）就向下展开。
+   真实运行时会由 menuAnchor.js 算出视口坐标，用内联样式改成 `position:fixed` ——
+   这样才能既不被面板滚动容器的 overflow 裁剪，又能在下方放不下时翻转向上。
+   `min-width` 保证即使只有「授权」两个字也不会挤成一条。 */
+.smp-menu{position:absolute;top:calc(100% + 4px);right:0;z-index:41;min-width:104px;padding:4px;display:flex;flex-direction:column;background:var(--dsw-alias-bg-layer-1,#fff);border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);box-shadow:0 6px 20px rgba(0,0,0,.12);box-sizing:border-box}
+.smp-menuItem{box-sizing:border-box;width:100%;text-align:left;border:0;background:0 0;border-radius:var(--dsw-radius-sm);padding:6px 10px;font-size:13px;line-height:18px;color:var(--dsw-alias-label-primary);cursor:pointer;white-space:nowrap}
+.smp-menuItem:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.smp-menuItem:disabled{opacity:.5;cursor:default}
+.smp-menuItem[data-variant=danger]{color:var(--dsw-alias-state-error-primary,#d92d20)}
+.smp-menuError{display:block;padding:4px 10px;font-size:11px;line-height:16px;color:var(--dsw-alias-state-error-primary,#d92d20);white-space:normal;max-width:220px}
+/* 展开区里的工具清单：数据来自 harness 工具注册表，只读展示。
+   分隔线与间距挂在标题上而不是包裹层：空清单与「不可读」两种状态只渲染标题，
+   挂在包裹层会让它们紧贴字段表，看起来像表格的一部分。 */
+.smp-tools{margin:0}
+.smp-toolHead{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;
+  margin-top:10px;border-top:.5px solid var(--dsw-alias-border-l3);padding-top:8px}
+.smp-toolTitle{color:var(--dsw-alias-label-tertiary)}
+.smp-toolCount{color:var(--dsw-alias-label-secondary)}
+.smp-toolCount[data-tone=muted]{color:var(--dsw-alias-label-caption)}
+/* 工具过滤：标题行的模式选择器，与每行的勾选框。 */
+.smp-toolModes{margin-left:auto;display:inline-flex;gap:2px}
+.smp-toolMode{appearance:none;background:none;border:.5px solid transparent;border-radius:var(--dsw-radius-sm);padding:1px 7px;font:inherit;font-size:11px;line-height:17px;color:var(--dsw-alias-label-tertiary);cursor:pointer}
+.smp-toolMode:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.smp-toolMode[data-active=true]{background:var(--dsw-alias-bg-module-platform);border-color:var(--dsw-alias-border-l3);color:var(--dsw-alias-label-primary)}
+.smp-toolPick{display:flex;align-items:center;gap:6px;min-width:0;cursor:pointer}
+.smp-toolPick input{margin:0;flex:none;accent-color:var(--dsw-alias-state-business-primary,#4176e6)}
+/* 开启过滤后，不会被注册的行淡化——一眼看出「这个工具模型看不到」。
+   判据是「是否保留」而非「是否勾选」：deny 模式下两者恰好相反。 */
+.smp-tool[data-kept=false] .smp-toolName{color:var(--dsw-alias-label-tertiary);font-weight:400}
+.smp-tool[data-kept=false] .smp-toolDesc{opacity:.7}
+.smp-toolList{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.smp-tool{display:flex;flex-direction:column;gap:1px;padding:3px 0;min-width:0}
+/* 工具名是这一行的「标题」，描述是「副标题」，所以两者要有层级差：
+   名字 13px + 500 字重 + 主色，描述 11px + 三级色。
+   行高走面板已有的阶梯（13px→20px，与 .smp-empty 一致；11px→16px）。 */
+.smp-toolName{font-family:var(--dsw-font-mono,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:13px;line-height:20px;font-weight:500;color:var(--dsw-alias-label-primary);word-break:break-all}
+/* 描述完整展示，只在极端长的少数情况下折行封顶。
+   实测 35 个真实 MCP 工具：中位 74 字符、p75 151、p90 318、最长 2006——
+   绝大多数只占一两行，所以不按字符数截断（那会白白砍掉大多数），
+   只给长尾一个上限，完整文本仍通过 title 属性可查。 */
+.smp-toolDesc{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}
+.smp-empty{color:var(--dsw-alias-label-tertiary);margin:0;font-size:13px;line-height:20px;list-style:none}
+.smp-note{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;margin:0;list-style:none}
+/* 工具勾选的保存闸门：勾选只改本地草稿，点这里才写 settings 文档
+   （每写一次文档，设置壳层就会重挂载一次 section）。 */
+.smp-filterBar{align-self:flex-start;box-sizing:border-box;display:inline-flex;align-items:center;gap:8px;width:auto;max-width:100%;margin:2px 0 6px;padding:7px 14px;border:1px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-m,8px);background:var(--dsw-alias-settings-card-fill)}
+.smp-filterBarText{flex:none;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}
+/* 环境变量字段：文本框 + 自动注入说明。说明里的 code 用等宽字体点出关键名。 */
+.smp-envField{display:flex;flex-direction:column;gap:6px;min-width:0}
+.smp-envField code{font-family:var(--dsw-font-mono,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:11px;background:var(--dsw-alias-bg-module-platform);border-radius:var(--dsw-radius-xs,4px);padding:0 4px}
+.smp-formGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.smp-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.smp-field[data-wide=true]{grid-column:1 / -1}
+/* 技能对话框里「将写入 <路径>」那一行：它不属于任何字段，但要跨满两列。 */
+.smp-skillPath{grid-column:1 / -1}
+/* MCP「需要授权」块：一枚主操作 + 可选的次要操作，下面是授权链接。 */
+.smp-oauthRow{display:flex;align-items:center;gap:8px;margin-top:6px}
+/* 授权链接是只读输入框而不是纯文本：链接很长，纯文本选中会把相邻文字一起带上，
+   而它必须能被完整复制（用户要粘到浏览器里）。 */
+.smp-oauthUrl{box-sizing:border-box;flex:1 1 auto;min-width:0;height:32px;padding:0 10px;border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smp-oauthLinkRow{display:flex;align-items:center;gap:8px;margin-top:2px}
+/* 失败文案用错误色，但**不加粗、不放大**：它不是故障警报，只是这次操作没成功。 */
+.smp-oauthError{color:var(--dsw-alias-state-error-primary,#d92d20)}
+.smp-label{font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary)}
+.smp-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:32px;padding:0 14px;border:.5px solid transparent;border-radius:var(--dsw-radius-md);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer;flex:none}
+.smp-button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.smp-button:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}
+.smp-button[data-variant=outline]{border-color:var(--dsw-alias-border-l3)}
+.smp-button[data-variant=danger]{color:var(--dsw-alias-state-error-primary,#d92d20)}
+.smp-cardActions .smp-button[data-variant=danger]{border-color:var(--dsw-alias-state-error-primary,#d92d20)}
+.smp-spinner{display:inline-block;width:12px;height:12px;box-sizing:border-box;border:1.5px solid var(--dsw-alias-border-l3);border-top-color:var(--dsw-alias-label-secondary);border-radius:50%;animation:smp-spin .72s linear infinite;flex:none}
+@keyframes smp-spin{to{transform:rotate(360deg)}}
+.smp-pending{display:inline-flex;align-items:center;gap:6px;color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}
+.smp-segment{align-self:flex-start;display:inline-flex;align-items:center;gap:2px;padding:2px;background:var(--dsw-alias-bg-module-platform);border-radius:var(--dsw-radius-md);width:fit-content}
+.smp-segment>button{box-sizing:border-box;height:28px;padding:0 12px;font:inherit;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:0 0;border:0;border-radius:var(--dsw-radius-sm);cursor:pointer}
+.smp-segment>button[data-active=true]{background:var(--dsw-alias-settings-card-fill);color:var(--dsw-alias-label-primary);font-weight:500}
+.smp-cardDetails .smp-input{box-sizing:border-box;width:100%;height:36px;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);padding:0 10px}
+.smp-cardDetails .smp-select,.smp-select{box-sizing:border-box;height:36px;font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);background-color:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);appearance:none;-webkit-appearance:none;padding:0 30px 0 10px;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6.5 8 10.5 12 6.5' stroke='%238b8f99' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:14px}
+.smp-cardDetails .smp-input[readonly]{color:var(--dsw-alias-label-secondary)}
+.smp-button[data-variant=primary]{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}
+.smp-button[data-variant=primary]:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}
+.smp-button:disabled{opacity:.4;cursor:not-allowed}
+.smp-actionsRow{display:flex;align-items:center;gap:8px;margin-top:10px}
+.smp-error{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-primary));font-size:12px;line-height:18px}
+
+/* Card description (the subtitle under a title): always exactly two lines at
+   most, with an ellipsis — long skill descriptions used to push the layout. */
+.smp-cardDescription {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
+
+/* Visible progress while a save is in flight (the button also reads 保存中…). */
+.smp-pendingHint {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* The delete dialog's description body: the note, an optional error and the progress
+   line are three separate statements. Stacking them with a gap keeps them from reading
+   as one run-on sentence (and the error from touching the note above it). */
+.smp-deleteMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* `smp-pendingHint` carries its own `margin-top` for standalone use; inside this flex
+   column the gap already does the spacing. */
+.smp-deleteMeta > .smp-pendingHint {
+  margin-top: 0;
+}
+
+/* The skill dialog body already lands on the description's box (274→1166) once
+   the dialog is widened, so it needs no side padding — adding one only squeezed
+   the form fields 48px narrower than the header text. */
+.smp-skillDialogBody {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 0 10px;
+  box-sizing: border-box;
+}
+
+/* Skill preview.
+   The official modal must be widened itself — forcing a min-width on the inner
+   wrapper just clipped the text against the modal's own overflow. `:has()` lets
+   us reach the dialog that contains the preview. */
+div:has(> .smp-previewWrap),
+div[role='dialog']:has(.smp-previewWrap),
+[class*='modal']:has(.smp-previewWrap),
+[class*='Modal']:has(.smp-previewWrap),
+/* Add/edit skill dialog: same width as the preview. */
+div[role='dialog']:has(.smp-skillDialogBody),
+[class*='modal']:has(.smp-skillDialogBody),
+[class*='Modal']:has(.smp-skillDialogBody) {
+  width: min(940px, 92vw) !important;
+  max-width: 92vw !important;
+}
+
+.smp-previewWrap {
+  /* Measured geometry inside the official modal (dialog 250→1190):
+       description slot  274 → 1166  (892 wide, padded 24 on both sides)
+       children slot     274 → 1214  (940 wide, no right gutter)
+     The preview lives in the children slot, so it only needs the difference
+     trimmed on the right: 940 − 892 = 48px. No left padding. */
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 48px 10px 0;
+  box-sizing: border-box;
+}
+
+/* Description + file path: the path is long, so it gets its own wrapped line. */
+.smp-previewMeta { display: block; }
+.smp-previewDesc { margin-bottom: 6px; overflow-wrap: anywhere; }
+.smp-previewPath {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  opacity: 0.75;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.smp-preview {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--dsw-alias-bg-layer-2);
+  border-radius: 10px;
+  /* The cap must leave room for the modal's own chrome (title + description +
+     footer) or a long body pushes the dialog past the window. Measured chrome is
+     ~180-210px, so subtract it from the viewport rather than using a bare vh. */
+  min-height: min(46vh, calc(100vh - 260px));
+  max-height: min(70vh, calc(100vh - 210px));
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Wrap at the padding edge; vertical scroll only, never silently clipped. */
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  /* Equal gutters on both sides for every wrapped line. */
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Skill source tag sits next to the name: give it the same breathing room the
+   MCP rows' "配置文件" tag has in smp-cardEnd. */
+.smp-cardIdentity .smp-tag {
+  margin-left: 6px;
+}
+
+/* Horizontal rule between two independent settings in the form grid.
+
+   The grid is two columns, so the rule has to span both. Zero height plus the grid's own
+   `gap` gives the separation — no margins, which would add to the gap and make the two
+   sides look like different sections rather than siblings. */
+.smp-divider {
+  grid-column: 1 / -1;
+  /* `1px` rather than the `.5px` used for card borders: a hairline that disappears on a
+     non-retina display is worse than a slightly heavier rule here, and this one is the only
+     thing separating two settings that would otherwise read as one group. */
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  height: 0;
+}
+
+/* Boolean setting inside a form field: a switch plus its explanatory text.
+
+   The old checkbox row had a **fixed `height: 32px`**, which was fine for a one-line label and
+   wrong the moment the text wrapped: two lines of 13px/18px need 36px, so the second line was
+   squeezed against the first and the row looked clipped. Almost every one of these labels is a
+   full sentence, so wrapping is the normal case, not the exception — the fixed height was the
+   bug, not the text.
+
+   So: no fixed height (let it grow), `flex-start` so the switch lines up with the **first** line
+   of text instead of floating in the middle of a two-line block, and a line-height that matches
+   the switch's own height so the first line and the thumb share a baseline. */
+.smp-switchRow {
+  display: flex;
+  /* 文字在左、开关固定贴右：整张表单的布尔设置都读成「这一项叫什么 → 它是哪一档」，
+     开关位置不再随文字长度左右浮动。 */
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The control slot.
+
+   A wrapper rather than a rule on the control itself, because the control is either the Host's
+   `primitives.Switch` **or** our own `.smp-switch` fallback button — different elements with
+   different class names. Targeting a slot keeps `flex: none` applying to both, instead of
+   silently working only on whichever one the current Host happens to render. */
+.smp-switchRow > .smp-switchSlot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  /* `min-content` keeps the pill from being squeezed when the text column grows; the row's
+     `space-between` then does the positioning, so no magic left/right value is needed. */
+  min-width: min-content;
+}
+
+/* Wrapping text column. `min-width: 0` is what actually allows it to wrap inside a flex row —
+   without it the column takes its max-content width and overflows the dialog. */
+.smp-switchRowText {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* The consequence sentence. Deliberately a separate line from the title: a warning that is
+   appended to the label reads as part of the name and gets skimmed past. */
+.smp-switchRowHint {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ---------- 技能按来源分组（components/skillSources.jsx） ----------
+
+   这个视图复用 MCP 卡片的骨架，只补三处：外层分组间距、技能名的等宽字形、以及
+   「来源停用」时把该组技能压暗。类名统一以 `smp-skill` 开头，不与既有规则抢选择器。 */
+
+.smp-skillSources {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.smp-skillSource {
+  min-width: 0;
+}
+
+/* 来源开关固定贴右：标题长短不同，开关位置不该左右浮动。 */
+.smp-skillSourceSwitch {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-width: min-content;
+}
+
+/* 路径单独一行，允许在任意字符处折行（Windows 路径没有空格可断）。 */
+.smp-skillSourcePath {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  min-width: 0;
+}
+
+.smp-skillCount {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 组内卡片比顶层卡片列表紧一点：它们从属于上方的来源标题。 */
+.smp-skillList {
+  gap: 10px;
+  margin-top: 2px;
+}
+
+/* 技能名是一张卡的标题，要和下面 12px 的描述拉开层级。
+   原先用 13px/500 的等宽字形，只比描述重一点点，看起来又细又小、和整页不协调。 */
+.smp-skillName {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+}
+
+/* 技能自身停用：只把名字降一档，描述本来就已经是次要色。 */
+.smp-skillCard[data-skill-on=false] .smp-skillName {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.smp-skillActions {
+  gap: 8px;
+}
+
+/* 与来源路径（groupSub 的 20px 缩进）左对齐，否则说明文字会顶到标题列。 */
+.smp-skillMissing {
+  margin-left: 20px;
+}
+
+/* 来源停用 → 该组技能整体压暗。开关刻意不压暗：它仍然可以操作（启停是策略层，
+   和来源开关是两个独立状态，组件文件头有说明）。 */
+.smp-skillList[data-off=true] .smp-skillName,
+.smp-skillList[data-off=true] .smp-cardDescription,
+.smp-skillList[data-off=true] .smp-tag,
+.smp-skillList[data-off=true] .smp-button {
+  opacity: .55;
+}
+
+/* ── 分类行 ──────────────────────────────────────────────────────────────────────────
+   分类不是可展开的卡片，所以刻意不复用 smp-card：那套类名被列表页的结构测试按卡片计数。 */
+.smp-skillCategories{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.smp-skillCategoryRow{display:flex;align-items:center;gap:8px;min-height:34px;padding:6px 10px;border:1px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-m,8px);background:var(--dsw-alias-settings-card-fill)}
+.smp-skillCategoryName{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smp-skillCategoryCount{color:var(--dsw-alias-label-tertiary);font-size:12px;font-variant-numeric:tabular-nums}
+.smp-skillCategoryActions{display:flex;align-items:center;gap:6px;margin-left:auto}
+.smp-skillCategory{flex:1;min-width:0;font:inherit;font-size:12px;padding:3px 6px;border-radius:var(--dsw-radius-xs,4px);border:1px solid var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+
+/* ── 技能仓库的技能行 ────────────────────────────────────────────────────────────────
+   缩进在仓库行下面，左侧一条竖线表示从属关系；名字等宽（它是目录名）。 */
+.smp-repoSkill{display:flex;align-items:center;gap:8px;margin-left:10px;padding:4px 10px;border-left:2px solid var(--dsw-alias-border-l3)}
+.smp-repoSkillName{font-family:var(--dsw-font-mono,ui-monospace,SFMono-Regular,Menlo,monospace);font-size:12px}
+.smp-repoSkillDesc{flex:1;min-width:0;color:var(--dsw-alias-label-tertiary);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── 侧栏主面板页的滚动容器 ──────────────────────────────────────────────────────────
+   设置面板的滚动由宿主内容列负责；但 main 槽位的容器是固定高度且不滚动的，内容超过一屏
+   会被裁掉（真机 bug：侧栏进去后页面无法上下滚动）。所以主面板页自己滚。
+   `min-height:0` 是关键：flex 子项默认 min-height:auto，会把容器撑开而不是内部滚动。 */
+.smp-mainShell{box-sizing:border-box;height:100%;min-height:0;max-height:100%;overflow-y:auto;overflow-x:hidden;padding:20px 24px 32px;-webkit-overflow-scrolling:touch}
+
+/* ── Skills 页的子页签 ───────────────────────────────────────────────────────────────
+   与顶层页签（smp-tab）刻意用不同的类：顶层那两个有测试按数量钉着。 */
+.smp-subTabs{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:-2px 0 2px}
+.smp-subTab{font:inherit;font-size:13px;line-height:18px;padding:5px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.smp-subTab:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.smp-subTab[data-active=true]{background:var(--dsw-alias-interactive-bg-active);border-color:var(--dsw-alias-border-l3);color:var(--dsw-alias-label-primary)}
+
+/* ── 来源折叠 ────────────────────────────────────────────────────────────────────────
+   整条标题是开关；折叠时只剩标题行，展开才显示路径与技能列表。 */
+.smp-skillSourceToggle{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:2px 0;font:inherit;color:inherit;text-align:left;background:transparent;border:0;cursor:pointer}
+.smp-skillSourceChevron{display:inline-block;width:12px;color:var(--dsw-alias-label-tertiary);transition:transform .12s ease}
+.smp-skillSourceChevron[data-open=true]{transform:rotate(90deg)}
+.smp-skillSource[data-source-open=false] .smp-groupTitleRow{opacity:.9}
+
+/* ── 技能页的两个过滤器 ───────────────────────────────────────────────────────────────
+   范围（全部 / 全局 / 某个工作区）与分类，可组合。 */
+.smp-skillFilters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.smp-skillFilters .smp-skillCategory{flex:0 0 auto;min-width:150px}
+
+/* ── 表单行（获取技能页）────────────────────────────────────────────────────────────
+   三层要视觉可分：区块标题 14px/主色 → 字段标签 12px/二级色 → 控件 32px。
+   此前「安装 / 导入目标」这类标签用的是 14px/500 且装在带边框的盒子里，于是它既像标题
+   又像输入框，整页读不出从属关系。 */
+.smp-formRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:32px}
+.smp-formRowLabel{flex:none;width:92px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}
+.smp-formRowBody{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.smp-formRowBody > .smp-input,
+.smp-formRowBody > .smp-select{flex:1 1 auto;min-width:130px;height:32px}
+/* 原生文件选择框比 smp-input 高，压到同一行高，否则整行被它撑开 */
+.smp-formRowBody > input[type=file]{box-sizing:border-box;flex:1 1 200px;min-width:150px;height:32px;padding:3px 8px;font-size:12px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md)}
+.smp-formRowBody > .smp-button{flex:none}
+
+
+/* ── 技能多选（批量启停）─────────────────────────────────────────────────────────────
+   只是"选中"，不改任何状态；视觉上比标题轻，不抢卡片身份。 */
+.smp-skillPickInput{flex:none;width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary))}
+.smp-skillPickInput:disabled{cursor:default;opacity:.5}
+
+/* 技能卡片上「…」展开的仓库动作行（0.5.53）。
+   就地展开而不是浮层：卡片在列表里，展开一行不会遮住别的技能，也不需要测锚点。
+   只对仓库装进来的技能出现 —— 普通技能没有版本可谈，给空菜单比不给更糟。 */
+.smp-skillMore{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0 0;margin:0 0 0 26px;border-top:1px dashed var(--dsw-alias-border-l2)}
+.smp-skillMoreNote{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smp-skillMoreActions{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+/* 文件选择：整个框就是触发区（原生 input 视觉上收掉，靠 <label> 转发点击）。
+   「大框套小按钮」是同一个动作给了两个点击目标：用户先点框没反应，再去找按钮。
+   这是一个**可点击的落点**，必须比普通输入框更显眼：用 module-platform 填充（亮/暗都
+   比页面底色深一档）+ 更实的边框 + 主色文字；只靠细边框在暗色下会被背景吞掉。 */
+.smp-filePick{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;min-width:220px;height:32px;padding:0 12px;border:1px solid var(--dsw-alias-border-l4);border-radius:8px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary);font-size:12px;line-height:30px;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+.smp-filePick:hover{border-color:var(--dsw-alias-state-business-primary);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-state-business-primary)}
+.smp-filePick:focus-within{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:1px}
+.smp-filePick[data-busy=true]{cursor:default;opacity:.6}
+.smp-filePickInput{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.smp-filePickInput:disabled{cursor:default}
+.smp-filePickText{pointer-events:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 总账：一行数字，别读成段落。行内允许换行，但行距压紧。 */
+.smp-ledger{row-gap:2px;color:var(--dsw-alias-label-secondary)}
+
+/* ─────────────────────────────────────────────────────────────
+   视觉修订（0.5.60）：把 Skills 页当一套系统，而不是逐块凑样式。
+
+   三条规则：
+     1. 一屏只有**一个**视觉主角（当前列表的对象）。分组名、摘要、说明一律后退。
+     2. 数字用等宽数字（tabular-nums）+ 明确的大小层级，不做"一片同号灰字"。
+     3. 能摊开的不藏进下拉；能两三个字说完的不写一句话。
+   ───────────────────────────────────────────────────────────── */
+
+/* 摘要条：数字 + 一枚外部来源 chip + 一个"目录位置"悬停入口（原来是一整句 60 字）。 */
+.smp-stat{display:inline-flex;align-items:baseline;gap:4px}
+.smp-statNum{font-size:14px;font-weight:600;line-height:18px;font-variant-numeric:tabular-nums}
+.smp-statLabel{font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.smp-chip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;line-height:20px;white-space:nowrap;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary)}
+.smp-chip[data-tone=ok]{background:var(--dsw-alias-state-success-tertiary,var(--dsw-alias-bg-module-platform));color:var(--dsw-alias-state-success-primary,#067647)}
+.smp-chip[data-tone=warn]{background:var(--dsw-alias-state-warn-tertiary,var(--dsw-alias-bg-module-platform));color:var(--dsw-alias-state-warn-primary,#b54708)}
+.smp-info{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary);cursor:help;text-decoration:underline dotted;text-underline-offset:2px}
+
+/* 总账条：结论用大字，分档用等宽小字，被挡下的原因只在非零时以彩色 chip 出现。 */
+.smp-ledger{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;box-sizing:border-box;padding:9px 12px;border:.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
+.smp-ledgerMain{display:inline-flex;align-items:baseline;gap:6px}
+.smp-ledgerNum{font-size:15px;font-weight:600;line-height:20px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.smp-ledgerLabel{font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.smp-ledgerScopes{font-size:11px;line-height:18px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.smp-ledgerReasons{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+
+/* 范围选择：分段控件（互斥两三项摊开，比下拉少一次点击，也不会有"这看不出是下拉"的问题）。 */
+.smp-segmented{display:inline-flex;align-self:flex-start;gap:2px;padding:2px;border-radius:9px;background:var(--dsw-alias-bg-module-platform)}
+.smp-segment{appearance:none;border:0;background:transparent;border-radius:7px;padding:4px 12px;font:inherit;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}
+.smp-segment:hover{color:var(--dsw-alias-label-primary)}
+.smp-segment[data-active=true]{background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+/* 来源分组：分组名比技能名轻一档（13/500 次要色），折叠后整行不抢戏。 */
+.smp-skillSourceLabel{font-size:13px;line-height:20px;font-weight:500;color:var(--dsw-alias-label-secondary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smp-skillSource[data-source-on=true] .smp-skillSourceLabel{color:var(--dsw-alias-label-primary)}
+.smp-skillSourceChevron{font-size:9px;line-height:1;flex:none}
+.smp-skillSource .smp-skillCount{font-size:11px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary)}
+.smp-skillSource .smp-tag{font-size:10px;line-height:16px;padding:0 6px}
+.smp-skillSource .smp-groupTitleRow{min-height:34px}
+
+/* 页头：标题 20/600，说明 12 灰 —— 原来的 18/500 + 13 灰，两者差得太少，读起来像两行正文。 */
+.smp-pageTitle{font-size:20px;font-weight:600;line-height:28px;margin:0}
+.smp-pageIntro{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary);margin:2px 0 0}
+
+/* 搜索行与页签：统一 8px 节奏，搜索框 36 → 34（比主按钮矮一档，视觉上让"添加技能"更突出）。 */
+.smp-searchInput{height:34px;border-radius:10px}
+.smp-subTabs{gap:6px;margin:2px 0 0}
+.smp-subTab{padding:4px 11px;font-size:12px;line-height:18px}
+/* 摘要行：数字/chip/说明三者按中线对齐（groupSub 默认 stretch，chip 会被拉高）。 */
+.smp-summaryAbove{align-items:center;gap:4px 10px;margin:0}
+
+/* ── 语义色 chip / tag 的可读性（亮色主题）──────────────────────────────
+   主题的 `state-*-tertiary` 在亮色下是非常浅的 100 档底色，而同色系
+   `state-*-primary` 是 500 档 —— 11px 小字只有约 2:1，读不清。亮色改用同色系
+   900 档文字（≈11–14:1）；暗色主题的底色本来就是 900 档，保持 500 档主色
+   （≈5–7:1）。两套都用主题 token，不写死颜色。 */
+.smp-chip[data-tone=ok], .smp-tag[data-tone=ok]{color:var(--dsw-static-green-900)}
+.smp-chip[data-tone=warn], .smp-tag[data-tone=warn]{color:var(--dsw-static-amber-900)}
+body[data-ds-dark-theme] .smp-chip[data-tone=ok], body[data-ds-dark-theme] .smp-tag[data-tone=ok]{color:var(--dsw-static-green-500)}
+body[data-ds-dark-theme] .smp-chip[data-tone=warn], body[data-ds-dark-theme] .smp-tag[data-tone=warn]{color:var(--dsw-static-amber-500)}body[data-ds-dark-theme] .smp-filePick:hover{background:var(--dsw-alias-bg-module-platform)}
+
+/* 插件更新结果里指向 GitHub 发布页的链接：与正文区分开，仍走主题 token。 */
+.smp-link{color:var(--dsw-alias-state-business-primary);text-decoration:underline;font-size:12px;line-height:18px;cursor:pointer}

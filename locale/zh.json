@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "技能与 MCP",
+    "description": "在同一个设置页里管理本机技能与 MCP 服务器：启停技能不改动源文件，可从 GitHub 仓库与 skills.sh / ClawHub 市场安装，编辑 cordis.patch.yml 里的 MCP 行时不会丢掉表达式与注释。"
+  }
+}

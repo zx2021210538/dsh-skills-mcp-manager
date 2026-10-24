@@ -1,0 +1,15 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dsh-skills-mcp-manager">
+  <title>dsh-skills-mcp-manager</title>
+  <mask id="smpCore">
+    <rect width="36" height="36" fill="#fff" />
+    <circle cx="18" cy="18" r="4.87" fill="#000" />
+  </mask>
+  <path d="M18 8.71 26.09 13.36v9.29L18 27.29 9.91 22.64v-9.29Z" fill="url(#smpBlue)" stroke="url(#smpBlue)" stroke-width="3.74" stroke-linejoin="round" mask="url(#smpCore)" />
+  <circle cx="18" cy="18" r="3.3" fill="#45D9E7" />
+  <defs>
+    <linearGradient id="smpBlue" x1="6" y1="5" x2="30" y2="31" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7CB7FF" />
+      <stop offset="1" stop-color="#145AF3" />
+    </linearGradient>
+  </defs>
+</svg>

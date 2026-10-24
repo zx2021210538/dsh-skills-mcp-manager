@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Skills & MCP",
+    "description": "One settings page for local agent skills and MCP servers: enable or disable skills without touching their source files, install from GitHub repositories and the skills.sh / ClawHub catalogs, and edit MCP rows in cordis.patch.yml without losing expressions or comments."
+  }
+}

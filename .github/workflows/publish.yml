@@ -1,0 +1,100 @@
+name: publish
+
+# 发版流程（GitHub Releases 是唯一的发布源）：
+#   在 GitHub 上发布一个 Release（tag 形如 v0.6.0）
+#     → 校验 tag 与 package.json 版本一致
+#     → 跑门禁（未定义名字 / 单测 / 冒烟 / 预览基线，缺夹具的两项自动跳过）
+#     → npm pack 生成 tarball，并把它上传到同一个 Release
+#
+# 插件自己的「检查更新」读的就是本仓库的 releases/latest（src/update.js），
+# 所以「发布 Release」= 「用户能检查到新版本 + 能下载到可安装的 tgz」。
+#
+# npm 发布是可选的：仓库如果配置了 NPM_TOKEN（或以后接 npm 可信发布），
+# 就额外把同一份包发到 registry；没有配置则跳过，不算失败。
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 只打包，不上传/不发布
+        type: boolean
+        default: false
+
+permissions:
+  # 上传 release 资产需要写权限。
+  contents: write
+
+concurrency:
+  group: publish-${{ github.event.release.tag_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Release tag 必须等于 package.json 的版本
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          pkg="v$(node -p "require('./package.json').version")"
+          if [ "$pkg" != "$TAG" ]; then
+            echo "::error::Release tag ${TAG} 与 package.json 的版本 ${pkg} 不一致：先把 package.json 改成 ${TAG}"
+            exit 1
+          fi
+          echo "版本一致：${pkg}"
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建（dist/ + lib/client.js）
+        run: npm run build
+
+      # 与本地一致的门禁。smoke 需要本机 DSH、预览基线需要 /tmp/preview 夹具，
+      # CI 上找不到会显式跳过（跳过 ≠ 通过）。
+      - name: 门禁
+        run: npm run gate
+
+      - name: 打包 tarball
+        id: pack
+        run: |
+          set -euo pipefail
+          npm pack
+          file="$(ls -1 dsh-skills-mcp-manager-*.tgz | head -n 1)"
+          echo "file=${file}" >> "$GITHUB_OUTPUT"
+          echo "打包完成：${file}"
+
+      - name: 上传 tarball 到 Release
+        if: github.event_name == 'release' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+          FILE: ${{ steps.pack.outputs.file }}
+        run: gh release upload "$TAG" "$FILE" --clobber
+
+      - name: 发布 npm 包（仅在配置了 NPM_TOKEN 时；可选通道）
+        if: env.NPM_TOKEN != '' && inputs.dry_run != true
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 结果摘要
+        if: always()
+        run: |
+          {
+            echo "### publish: ${{ job.status }}"
+            echo "- tag: ${{ github.event.release.tag_name || '（手动触发）' }}"
+            echo "- package: $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
+            echo "- tarball: ${{ steps.pack.outputs.file }}"
+          } >> "$GITHUB_STEP_SUMMARY"
