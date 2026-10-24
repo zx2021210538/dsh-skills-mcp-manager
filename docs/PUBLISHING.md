@@ -164,16 +164,19 @@ description:
 
 ### 4.3 截图
 
-截图不写在目录条目里，而是放在**仓库根目录**的 `screenshots.json`。本仓库暂未提交该文件：
-`node scripts/screenshots.mjs` 生成真实图片到 `docs/images/` 之后，再把下面这份清单一起提交，
-避免条目引用不存在的图片。
+截图不写在目录条目里，而是放在**仓库根目录**的 `screenshots.json`（本仓库已加，三张）：
 
 ```json
-["docs/images/mcp-panel.png", "docs/images/skills-panel.png"]
+[
+  "docs/images/mcp-panel.png",
+  "docs/images/tools-filter.png",
+  "docs/images/skills-panel.png"
+]
 ```
 
 1–8 张，相对路径（不能以 `/` 开头、不能有 `..`），或 GitHub 图床上的 https 绝对地址。
-图片本身由 `node scripts/screenshots.mjs` 生成到 `docs/images/`（需要 headless Chrome + 预览夹具）。
+图片本身由 `node scripts/screenshots.mjs` 生成到 `docs/images/`（需要 headless Chrome + React UMD
++ 主题 token 三样夹具；生成后连同 `screenshots.json` 一起提交）。
 
 ### 4.4 生效时间
 

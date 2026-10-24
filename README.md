@@ -46,16 +46,27 @@ DSH 插件：把 **Skills** 与 **MCP** 的管理搬进 **设置 → Skills & MC
 
 ## 界面预览
 
+**MCP 页**：全局 / 项目级行、连接状态、逐行开关与 `…` 菜单。
+
+![MCP 服务器面板](docs/images/mcp-panel.png)
+
+**工具过滤**：展开卡片看到该服务器实际注册的工具，按「全部保留 / 只保留勾选 / 只挡勾选」收窄。
+
+![按服务器筛选工具](docs/images/tools-filter.png)
+
+**技能页**：按来源分组、逐技能/逐来源启停；只在磁盘上存在的目录才出现，只读来源不显示写操作。
+
+![技能管理面板](docs/images/skills-panel.png)
+
 > 截图由**本仓库构建出的客户端 bundle 离线渲染**生成（同一套 stub 加载器 + 示例数据），
-> 不是真机截图——真机截图会把作者自己的服务器地址与项目路径带进 README。
-> 图片暂未随仓库分发；跑一次下面这条命令会在 `docs/images/` 下生成：
+> 不是真机截图——真机截图会把作者自己的服务器地址与项目路径带进 README。重新生成：
 >
 > ```bash
 > node scripts/screenshots.mjs
 > ```
 >
-> 它需要 headless Chrome、`SMP_PREVIEW_DIR`（含 React UMD）与 `SMP_THEME_CSS` 三样夹具，
-> 缺任何一样都会打印缺什么并跳过（不会假装成功）。
+> 需要 headless Chrome、`SMP_PREVIEW_DIR`（含 React 18 UMD）与 `SMP_THEME_CSS`（`--dsw-*` token 列表）
+> 三样夹具，缺任何一样都会打印缺什么并跳过（不会假装成功）。
 
 ## 安装
 
