@@ -92,8 +92,10 @@ async function getJson(fetchImpl, url, what) {
 /**
  * 问 GitHub 仓库最新版本是多少。
  *
- * 顺序：`GET /repos/<repo>/releases/latest` → 404 时退到
- * `GET https://raw.githubusercontent.com/<repo>/<branch>/package.json`。
+ * 顺序：`GET /repos/<repo>/releases/latest` → 取不到（没有 release / API 403 限流 /
+ * 网络失败）时退到 `GET https://raw.githubusercontent.com/<repo>/<branch>/package.json`。
+ * 退路很重要：GitHub API 对匿名请求有每小时 60 次的限额，而 raw 文件没有这个限制；
+ * 版本号本来就在 package.json 里，没必要因为限流就告诉用户「检查更新失败」。
  *
  * @returns `{ ok: true, current, latest, updateAvailable, url, source }`
  *          或 `{ ok: false, reason }`
@@ -121,8 +123,8 @@ export async function checkForUpdate({
     if (tag === '') return { ok: false, reason: 'GitHub 最新发布没有 tag 名' }
     latest = tag.replace(/^v/i, '')
     if (typeof release.payload?.html_url === 'string' && release.payload.html_url !== '') url = release.payload.html_url
-  } else if (release.status === 404) {
-    // 还没有任何 release：读默认分支的 package.json（仓库里始终有这一份）。
+  } else {
+    // release 读不到（404 未发布 / 403 限流 / 网络失败等）：退到默认分支的 package.json。
     const rawBranch = String(branch ?? '').trim() === '' ? 'main' : String(branch).trim()
     const manifest = await getJson(
       fetchImpl,
@@ -130,14 +132,15 @@ export async function checkForUpdate({
       '仓库里的 package.json',
     )
     if (manifest.ok !== true) {
-      return { ok: false, reason: `仓库还没有发布版本，且读不到 package.json（${String(manifest.reason ?? '')}）` }
+      return {
+        ok: false,
+        reason: `${String(release.reason ?? '读不到 GitHub 发布版本')}；仓库里的 package.json 也读不到（${String(manifest.reason ?? '')}）`,
+      }
     }
     latest = String(manifest.payload?.version ?? '').trim()
     if (latest === '') return { ok: false, reason: '仓库里的 package.json 没有 version 字段' }
     url = `https://github.com/${repo}`
     source = 'package.json'
-  } else {
-    return { ok: false, reason: String(release.reason ?? '检查 GitHub 发布版本失败') }
   }
 
   const order = compareVersions(latest, current)

@@ -209,7 +209,10 @@ export function categoryList(state) {
       enabled: record?.enabled !== false,
       count: Array.isArray(record?.skills) ? record.skills.length : 0,
     }))
-    .sort((left, right) => left.name.localeCompare(right.name))
+    // 显式指定 zh 排序：默认 localeCompare 用运行环境的默认 locale，
+    // Linux CI（en-US）与 Windows（zh-CN）对中文名的顺序不同，会让同一份快照
+    // 在两个平台排出不同结果（测试与界面都不该随系统语言变）。
+    .sort((left, right) => left.name.localeCompare(right.name, 'zh-Hans-CN'))
 }
 
 /** Create a category. Returns `false` when the name is invalid or already taken. */

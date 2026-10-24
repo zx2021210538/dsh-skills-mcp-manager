@@ -99,8 +99,22 @@ test('checkForUpdate：release 是 404、回退的 package.json 也读不到时�
     ]),
   })
   assert.equal(result.ok, false)
-  assert.match(String(result.reason), /没有发布版本/)
+  assert.match(String(result.reason), /仓库里的 package\.json 也读不到/)
   assert.match(String(result.reason), /HTTP 500/)
+})
+
+test('checkForUpdate：GitHub API 被限流（403）时仍能从 package.json 读出结论', async () => {
+  // GitHub 匿名 API 限额 60 次/小时；插件不应因为限流就告诉用户「检查更新失败」。
+  const result = await checkForUpdate({
+    currentVersion: '0.6.0',
+    fetchImpl: routed([
+      [/\/releases\/latest$/, () => reply({ message: 'API rate limit exceeded' }, 403)],
+      [/raw\.githubusercontent\.com\/.*\/main\/package\.json$/, () => reply({ version: '0.6.0' })],
+    ]),
+  })
+  assert.equal(result.ok, true, result.reason)
+  assert.equal(result.source, 'package.json')
+  assert.equal(result.updateAvailable, false)
 })
 
 test('checkForUpdate：网络失败、HTTP 错误、缺 tag、缺 version 都给出原因', async () => {
