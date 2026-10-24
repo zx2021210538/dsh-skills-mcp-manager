@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.6.1 — npm 发布 + Trusted Publishing；README 截图；市场条目就绪
+
+> 运行时代码只改了显示的版本号，主要是发布链路与文档。
+
+### 1. npm 包与自动发布
+
+- 包已发布到 npm：<https://www.npmjs.com/package/dsh-skills-mcp-manager>。
+  `0.6.0` 是首个手动版本（npm 要求包先存在才能配可信发布），从本版起由 CI 自动发布。
+- `.github/workflows/publish.yml` 改用 **npm Trusted Publishing（GitHub OIDC）**：
+  `id-token: write` + `npm publish --provenance --access public`，仓库里**不存任何 npm token**；
+  npm 页面会显示 “Built and signed on GitHub Actions”。
+- npm 包的 Publishing access 已设为最严格档：**禁止 bypass-2FA token 发布**。
+- 发布流程仍然是「发一个 GitHub Release」：校验 tag 与版本一致 → build/门禁 → 打包并上传
+  Release 资产 → OIDC 发 npm；同一 workflow 对「该版本已在 npm 上」幂等，重跑不会红灯。
+
+### 2. README 截图
+
+- 新增三张离线渲染截图（`docs/images/`）：MCP 面板、工具过滤、技能面板，README 直接展示。
+- 修复 `scripts/screenshots.mjs` 两个从没跑通过的问题：只捕获 `settings.section`（原来被侧栏
+  注册覆盖成没有 `inject()` 的条目，整页空白）、离线页补上 `/runtime` 样例数据与治理夹具；
+  技能页会展开来源分组后再截图。
+
+### 3. 插件市场
+
+- `docs/market-entry.yml` 补全为可直接提交的条目（`category: ui`、`tarball` 指向 Release 资产、
+  中英双语描述）；`screenshots.json` 登记三张截图，供市场条目展示。
+
 ## 0.6.0 — 自有身份 + 发布到自有 GitHub 仓库；插件更新接自有 Releases
 
 > **重启 DSH**（Host 半改了）+ 刷新页面（Client 半改了）。装过旧包的，先把旧包名从 profile

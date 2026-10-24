@@ -10,7 +10,7 @@
 补齐到同等水平，UI 全部重写成本插件自己的 `smp-*` 风格。**没有拷贝它们的代码**：只对齐
 能力与协议，实现是本仓库自己的（协议来源见各模块头部注释）。
 
-当前版本 `0.6.0`。测试 695 项。
+当前版本 `0.6.1`。测试 700 项（696 通过 / 4 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
 
 ---
 
@@ -30,7 +30,7 @@
 | 工作区视图 | 仅下拉筛选 | ✅ 工作区 + 全局技能视图（0.5.18） |
 | 侧栏入口（主面板页） | ❌ | ✅ `main` + `sidebar.panellist`（0.5.19） |
 | locale（插件管理器里的标题/说明） | ❌（回退到包名） | ✅ `locale/en.json`、`locale/zh.json`（0.5.19） |
-| 自更新检查 | ❌ | ✅ 只检查不安装（0.5.19）；**0.6.0 起暂时置空**（更新源未接入，UI 只显示占位说明） |
+| 自更新检查 | ❌ | ✅ 只检查不安装（0.5.19）；**0.6.0 起接自有仓库 Releases**，读 `releases/latest`（缺失时退回 `main` 的 `package.json`），UI 有按钮 + 发布页链接 |
 
 ## 二、模块地图
 
@@ -53,12 +53,12 @@ src/
     catalog.js              skills.sh / ClawHub 的搜索、榜单、下载、安装
     catalog-route.js        市场路由（独立队列，慢操作不堵快操作）
     http.js                 写路由共用的三道守卫 + 请求体读取
-  update.js                 自更新检查（只读 registry，不替换文件；0.6.0 起 UI 侧暂时置空，模块保留）
+  update.js                 自更新检查（读本仓库 Releases，不替换文件）
 lib/src/                    客户端源码（esbuild 打包成 lib/client.js）
   client.js                 Panel 本体（设置页 + 主面板页共用）
   components/               card / toolList / skillSources / dialog / tabs …
   styles/panel.css          全部 smp-* 样式
-test/                       695 项，按模块分文件
+test/                       700 项，按模块分文件
 ```
 
 ## 三、必须守住的边界（回归测试围着这些写）
@@ -99,7 +99,7 @@ test/                       695 项，按模块分文件
 
 ```bash
 npm install
-npm test                     # 695 项
+npm test                     # 700 项（696 通过 / 4 跳过）
 npm run check:names          # 未定义名字 / TDZ（会让 DSH 隔离整个 profile 的那类）
 npm run build                # tsc → dist/，esbuild → lib/client.js
 npm run smoke                # Host 冒烟：加载期不得有异常逃逸

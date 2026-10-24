@@ -9,7 +9,7 @@
  * 但 profile 的 `package.json` 里那份依赖指向一个 **tarball**：
  *
  * ```
- * "dsh-skills-mcp-manager": "file:.../dsh-skills-mcp-manager-0.6.0.tgz"
+ * "dsh-skills-mcp-manager": "file:.../dsh-skills-mcp-manager-<版本>.tgz"
  * ```
  *
  * 于是 DSH 一旦重建 profile（升级、`pnpm install`、profile 自愈），

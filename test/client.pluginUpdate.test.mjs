@@ -14,9 +14,16 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { BUNDLE, bootPanel, emptyDoc, skipWithoutBundle, textOf } from '../scripts/lib/client-harness.mjs'
 
-const RELEASES_URL = 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/tag/v0.6.0'
+/** 版本号从 package.json 来：每次发版只改一处，测试跟着走。 */
+const PKG = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'))
+const VERSION = PKG.version
+const NEXT_VERSION = VERSION.replace(/(\d+)$/, (digits) => String(Number(digits) + 1))
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const RELEASES_URL = `https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/tag/v${VERSION}`
 
 /**
  * 构建产物可能早于源码（例如只跑了 npm test 没 build）。用 ASCII 标识符判断，
@@ -60,7 +67,7 @@ async function bootFetchTab(doc, updateResult) {
   return panel
 }
 
-const OK_SAME = { ok: true, reason: '', current: '0.6.0', latest: '0.6.0', updateAvailable: false, url: RELEASES_URL }
+const OK_SAME = { ok: true, reason: '', current: VERSION, latest: VERSION, updateAvailable: false, url: RELEASES_URL }
 
 test('插件更新：显示当前版本、有按钮、没有「未接入」占位', { skip: skipWhenBundleIsStale() }, async () => {
   const doc = emptyDoc()
@@ -68,7 +75,7 @@ test('插件更新：显示当前版本、有按钮、没有「未接入」占�
   try {
     const page = panel.text()
     assert.match(page, /插件更新/, '区块标题要在')
-    assert.match(page, /0\.6\.0/, '要显示当前版本')
+    assert.match(page, new RegExp(escape(VERSION)), '要显示当前版本')
     assert.doesNotMatch(page, /更新源未接入/, '更新源已接入，不该再显示占位文案')
     const button = panel.find((node) => node.type === 'button' && textOf(node).trim() === '检查插件更新')
     assert.ok(button !== null, '更新源接入后要有「检查插件更新」按钮')
@@ -89,7 +96,7 @@ test('插件更新：点击后发 update-check，显示「已是最新」与发�
     const updates = (doc.catalogCommands ?? []).filter((command) => command?.op === 'update-check')
     assert.equal(updates.length, 1, `应恰好发一次 update-check，实际 ${updates.length} 次`)
     const page = panel.text()
-    assert.match(page, /已是最新（0\.6\.0）/, `结论要显示出来：${page.slice(0, 400)}`)
+    assert.match(page, new RegExp(`已是最新（${escape(VERSION)}）`), `结论要显示出来：${page.slice(0, 400)}`)
     assert.match(page, /发布页/, '结果里要有发布页链接')
     const link = panel.find((node) => node.type === 'a' && String(node.props?.href ?? '') === RELEASES_URL)
     assert.ok(link !== null, '发布页链接要指向 releases 页面')
@@ -101,14 +108,14 @@ test('插件更新：点击后发 update-check，显示「已是最新」与发�
 test('插件更新：有新版本时显示版本号对比', { skip: skipWhenBundleIsStale() }, async () => {
   const doc = emptyDoc()
   const panel = await bootFetchTab(doc, {
-    ok: true, reason: '', current: '0.6.0', latest: '0.6.1', updateAvailable: true,
-    url: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/tag/v0.6.1',
+    ok: true, reason: '', current: VERSION, latest: NEXT_VERSION, updateAvailable: true,
+    url: `https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/tag/v${NEXT_VERSION}`,
   })
   try {
     const button = panel.find((node) => node.type === 'button' && textOf(node).trim() === '检查插件更新')
     panel.click(button)
     await panel.settle()
-    assert.match(panel.text(), /有新版本 0\.6\.1（本机 0\.6\.0）/)
+    assert.match(panel.text(), new RegExp(`有新版本 ${escape(NEXT_VERSION)}（本机 ${escape(VERSION)}）`))
   } finally {
     panel.restore()
   }

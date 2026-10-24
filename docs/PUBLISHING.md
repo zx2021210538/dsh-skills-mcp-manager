@@ -9,8 +9,9 @@
   `releases/latest` 的 tag（没有 release 时退回 `main` 分支的 `package.json`，见
   [`src/update.js`](../src/update.js)）。发布一个 Release = 用户能检查到新版本、也能下载到
   可安装的 `.tgz`。
-- npm 是**可选通道**：仓库配置了 `NPM_TOKEN` 时 `publish.yml` 会顺手发一份到 registry；
-  没配置就跳过，不算失败。市场收录也以 GitHub 仓库为准。
+- npm：<https://www.npmjs.com/package/dsh-skills-mcp-manager>，**发 Release 时由
+  `publish.yml` 用 Trusted Publishing（GitHub OIDC）自动发布**，带 provenance，不需要任何
+  npm token。市场收录以 GitHub 仓库为准，npm 只是多一条安装通道。
 
 > 改包名时必须同步改五处：`package.json#name`、`lib/src/client.js` 的
 > `__ModuleLoader__.load({ id })`、`cordis.patch.yml` 的 bundle `name`、
@@ -24,7 +25,7 @@
 ```jsonc
 {
   "name": "dsh-skills-mcp-manager",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/zx2021210538/dsh-skills-mcp-manager.git" },
   "homepage": "https://github.com/zx2021210538/dsh-skills-mcp-manager#readme",
@@ -69,21 +70,23 @@ npm pack --dry-run      # 只看清单：应有 dist/**、lib/client.js、cordis
 npm version minor --no-git-tag-version
 
 # 2) 提交并推到发布线
-git add -A && git commit -m "release: v0.6.0"
+git add -A && git commit -m "release: v0.6.1"
 git push origin main
 
 # 3) 打 tag 并推送
-git tag v0.6.0
-git push origin v0.6.0
+git tag v0.6.1
+git push origin v0.6.1
 ```
 
-然后在 GitHub 上 **Releases → Draft a new release**，选 `v0.6.0`，发布（Publish release）。
+然后在 GitHub 上 **Releases → Draft a new release**，选 `v0.6.1`，发布（Publish release）。
 `publish.yml` 会自动：
 
 1. 校验 `v<package.json version>` == release tag（不一致直接失败，绝不发出号不对的包）；
 2. `npm ci` → `npm run build` → `npm run gate`（CI 上没有本机 DSH / 预览夹具的两项会显式跳过）；
 3. `npm pack` 生成 `dsh-skills-mcp-manager-<版本>.tgz`；
-4. 把这个 tarball **上传到同一个 Release**（`gh release upload`）。
+4. 把这个 tarball **上传到同一个 Release**（`gh release upload`）；
+5. 用 **npm Trusted Publishing（GitHub OIDC）** 执行 `npm publish --provenance --access public`，
+   npm 侧会显示 “Built and signed on GitHub Actions”。**不需要任何 npm token/secret**。
 
 > 如果 Actions 不可用或失败，可手动上传：`npm pack` 后在 Release 页面把 `.tgz` 拖进去即可。
 > 只想演练不发布：Actions → **publish** → *Run workflow* → 勾 `dry_run`，只 build + pack，不碰 Release。
@@ -94,23 +97,25 @@ git push origin v0.6.0
 # 更新检查读的就是它（tag 去掉 v 后的版本号）
 curl -s https://api.github.com/repos/zx2021210538/dsh-skills-mcp-manager/releases/latest | grep tag_name
 
+# npm 版本与 provenance：
+npm view dsh-skills-mcp-manager version
+curl -s https://registry.npmjs.org/dsh-skills-mcp-manager/latest | grep -o '"attestations"[^}]*'
+
 # 插件里：设置 → Skills & MCP → 获取技能 → 插件更新 → 检查插件更新
 # 应显示「已是最新（<版本>）」和「发布页」链接；把本机版本临时改小可验证「有新版本」分支。
 ```
 
-### 2.3 可选：同时发到 npm
+### 2.3 npm Trusted Publishing（已配置，无需 token）
 
-仓库 Secrets 里配了 `NPM_TOKEN` 时，`publish.yml` 会额外执行 `npm publish --provenance`；
-没配就跳过。首次发 npm 前需要：
+npm 包的发布已经接给 GitHub Actions：npmjs.com → 包 **dsh-skills-mcp-manager** → Settings →
+Trusted Publishing 里登记了 `zx2021210538/dsh-skills-mcp-manager` + workflow `publish.yml`
+（权限 npm publish）。所以 `publish.yml` 只需要 `id-token: write`，用 GitHub 签发的 OIDC
+令牌直接换 npm 发布权限，**仓库里不存任何 npm token**。
 
-```bash
-npm login
-npm publish              # 第一个版本必须手动发（可信发布只能给已存在的包配置）
-npm view dsh-skills-mcp-manager version
-```
-
-之后可在 npmjs.com 给这个包配置 GitHub Actions Trusted Publisher（workflow `publish.yml`），
-把 `NPM_TOKEN` 删掉也能发。`publishConfig.access=public` 已写在 `package.json` 里。
+> 第一个版本（0.6.0）是手动发的：npm 要求包先存在才能配置 Trusted Publisher。
+> 之后每次 Release 都自动发，不需要 `npm login`。
+> provisioning 只对“发布”生效；本地手动 `npm publish` 仍需 2FA（安全密钥/恢复码），不建议再手动发。
+> 包的 Publishing access 已设为最严格：禁止 bypass-2FA token 发布。
 
 ## 3. 本地 tarball（离线 / 开发）
 
@@ -143,7 +148,7 @@ data/plugins/<owner>__dsh-skills-mcp-manager.yml
 url: 'https://github.com/zx2021210538/dsh-skills-mcp-manager'
 name: 'zx2021210538/dsh-skills-mcp-manager'
 category: ui
-tarball: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.0/dsh-skills-mcp-manager-0.6.0.tgz'
+tarball: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.1/dsh-skills-mcp-manager-0.6.1.tgz'
 description:
   en: '…英文一行…'
   zh: '…中文一行…'

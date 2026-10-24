@@ -6,6 +6,7 @@
 
 [![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2%20实测-4c6ef5)](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/dsh-skills-mcp-manager)](https://www.npmjs.com/package/dsh-skills-mcp-manager)
 [![ci](https://github.com/zx2021210538/dsh-skills-mcp-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/zx2021210538/dsh-skills-mcp-manager/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/zx2021210538/dsh-skills-mcp-manager)](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/latest)
 [![runtime deps](https://img.shields.io/badge/运行时依赖-0-8a8f99)](#工作原理)
@@ -18,8 +19,9 @@
 > **这是自有版本（0.6.0 起），不是任何第三方的发布版。** 代码基于 MIT 许可的既有实现演进，
 > 自 0.6.0 起包名统一为 `dsh-skills-mcp-manager`（无 scope）。
 > 仓库：<https://github.com/zx2021210538/dsh-skills-mcp-manager>；
-> 安装走 **GitHub Release 里的 `.tgz`**（见下），「设置 → Skills & MCP → 获取技能 → 插件更新」
-> 的更新检查也直接读这个仓库的 Release。
+> npm：<https://www.npmjs.com/package/dsh-skills-mcp-manager>（由 GitHub Actions 的 OIDC
+> Trusted Publishing 自动发布，带 provenance）。安装命令见下；「设置 → Skills & MCP → 获取技能
+> → 插件更新」的更新检查读本仓库的 Release。
 >
 > 能力已扩展到与 `@michengai/dsh-skills-manager` 对齐：外部 Agent 来源、逐技能/逐来源启停
 > （不改源文件）、分类、回收站、GitHub 仓库、在线市场（skills.sh / ClawHub）、导入、工作区
@@ -72,29 +74,39 @@ DSH 插件：把 **Skills** 与 **MCP** 的管理搬进 **设置 → Skills & MC
 
 本插件装进 DSH 的某个 profile（`$DSH_HOME/profiles/<name>`），Host 半在 harness 进程里跑。
 
-### 桌面端（推荐）：设置 → 插件 → 安装本地包
+### 从 npm（一条命令）
+
+```bash
+dsh plugin --profile web add dsh-skills-mcp-manager
+```
+
+桌面端：**设置 → 插件 → 安装插件**，搜 `dsh-skills-mcp-manager` 即可（插件市场收录前也可以直接从
+[npm](https://www.npmjs.com/package/dsh-skills-mcp-manager) 或 [Releases](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases)
+下载/安装）。
+
+### 桌面端：设置 → 插件 → 安装本地包
 
 从 [Releases](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases) 下载
-`dsh-skills-mcp-manager-0.6.0.tgz`，在 **设置 → 插件 → 安装本地包** 里选中它，然后**重启 DSH**。
+`dsh-skills-mcp-manager-0.6.1.tgz`，在 **设置 → 插件 → 安装本地包** 里选中它，然后**重启 DSH**。
 
 > `desktop` profile 由桌面应用独占，宿主 CLI 的 `dsh plugin --profile desktop` 会被直接拒绝。
 
-### 命令行（web / headless / tui profile）
+### 命令行（GitHub Release / 本地 tarball）
 
 ```bash
-# 直接装 GitHub Release 里的包：
+# 装 GitHub Release 里预构建的包：
 dsh plugin --profile web add \
-  https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.0/dsh-skills-mcp-manager-0.6.0.tgz
+  https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.1/dsh-skills-mcp-manager-0.6.1.tgz
 
 # 或者用本机打出来的 tarball：
 npm pack
-dsh plugin --profile web add ./dsh-skills-mcp-manager-0.6.0.tgz
+dsh plugin --profile web add ./dsh-skills-mcp-manager-0.6.1.tgz
 ```
 
 **重启 DSH**，再刷新页面：**设置 → Skills & MCP**。
 
-升级：换新 release 的 tgz 重装一次；插件自己的「获取技能 → 插件更新」会读本仓库的
-`releases/latest` 并提示有没有新版（只提示，不自动替换文件）。
+升级：`dsh plugin --profile <name> add dsh-skills-mcp-manager`（或换新 Release 的 tgz 重装一次）；
+插件自己的「获取技能 → 插件更新」会读本仓库的 `releases/latest` 并提示有没有新版（只提示，不自动替换文件）。
 
 卸载：
 

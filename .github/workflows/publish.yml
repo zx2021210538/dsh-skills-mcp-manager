@@ -1,16 +1,17 @@
 name: publish
 
-# 发版流程（GitHub Releases 是唯一的发布源）：
-#   在 GitHub 上发布一个 Release（tag 形如 v0.6.0）
+# 发版流程：GitHub Releases 是唯一的发布源。
+#
+#   在 GitHub 上发布一个 Release（tag 形如 v0.6.1）
 #     → 校验 tag 与 package.json 版本一致
 #     → 跑门禁（未定义名字 / 单测 / 冒烟 / 预览基线，缺夹具的两项自动跳过）
 #     → npm pack 生成 tarball，并把它上传到同一个 Release
+#     → 用 npm Trusted Publishing（GitHub OIDC）把同一份包发到 npm，带 provenance
 #
-# 插件自己的「检查更新」读的就是本仓库的 releases/latest（src/update.js），
-# 所以「发布 Release」= 「用户能检查到新版本 + 能下载到可安装的 tgz」。
-#
-# npm 发布是可选的：仓库如果配置了 NPM_TOKEN（或以后接 npm 可信发布），
-# 就额外把同一份包发到 registry；没有配置则跳过，不算失败。
+# 不需要任何 npm secret：npm 侧已为本仓库 + `publish.yml` 配置了 Trusted Publisher，
+# workflow 只需 `id-token: write`，npm CLI 会拿 GitHub 的 OIDC 令牌换发布权限。
+# 插件自己的「检查更新」读的是本仓库 releases/latest（src/update.js），
+# 所以「发一个 Release」= 用户能检查到新版本 + 能下载 tgz + npm 上也有新版。
 on:
   release:
     types: [published]
@@ -22,8 +23,9 @@ on:
         default: false
 
 permissions:
-  # 上传 release 资产需要写权限。
+  # 上传 release 资产需要写权限；Trusted Publishing 需要 OIDC。
   contents: write
+  id-token: write
 
 concurrency:
   group: publish-${{ github.event.release.tag_name || github.run_id }}
@@ -32,15 +34,22 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+          registry-url: https://registry.npmjs.org
           cache: npm
+
+      - name: 工具链自检（Trusted Publishing 要求 npm ≥ 11.5.1）
+        run: |
+          set -euo pipefail
+          node -v
+          npm -v
+          npm -v | awk -F. '{ if ($1 > 11 || ($1 == 11 && $2 >= 5)) exit 0; exit 1 }' \
+            || { echo "::error::Trusted Publishing 需要 npm ≥ 11.5.1（当前 $(npm -v)）"; exit 1; }
 
       - name: Release tag 必须等于 package.json 的版本
         if: github.event_name == 'release'
@@ -83,11 +92,24 @@ jobs:
           FILE: ${{ steps.pack.outputs.file }}
         run: gh release upload "$TAG" "$FILE" --clobber
 
-      - name: 发布 npm 包（仅在配置了 NPM_TOKEN 时；可选通道）
-        if: env.NPM_TOKEN != '' && inputs.dry_run != true
-        run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # 幂等：重跑同一个 workflow 时不因为「该版本已存在」变成红灯。
+      - name: 这个版本是否已经在 npm 上
+        id: npm_exists
+        run: |
+          set -euo pipefail
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          if npm view "${name}@${version}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${name}@${version} 已经在 npm 上，跳过本次发布"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "${name}@${version} 还没发布，准备用 OIDC 发包"
+          fi
+
+      - name: 发布 npm 包（Trusted Publishing / OIDC，无 token）
+        if: github.event_name == 'release' && inputs.dry_run != true && steps.npm_exists.outputs.exists == 'false'
+        run: npm publish --provenance --access public
 
       - name: 结果摘要
         if: always()
@@ -97,4 +119,5 @@ jobs:
             echo "- tag: ${{ github.event.release.tag_name || '（手动触发）' }}"
             echo "- package: $(node -p "require('./package.json').name")@$(node -p "require('./package.json').version")"
             echo "- tarball: ${{ steps.pack.outputs.file }}"
+            echo "- npm: ${{ steps.npm_exists.outputs.exists == 'true' && 'already published' || 'published via OIDC' }}"
           } >> "$GITHUB_STEP_SUMMARY"
