@@ -143,6 +143,7 @@ data/plugins/<owner>__dsh-skills-mcp-manager.yml
 url: 'https://github.com/zx2021210538/dsh-skills-mcp-manager'
 name: 'zx2021210538/dsh-skills-mcp-manager'
 category: ui
+tarball: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.0/dsh-skills-mcp-manager-0.6.0.tgz'
 description:
   en: '…英文一行…'
   zh: '…中文一行…'
@@ -150,7 +151,7 @@ description:
 
 校验器只认这几个键（多写会被拒）：`url`（必填，必须与仓库地址完全一致）、`name`（必填）、
 `category`（必填，从既定分类里选）、`description`（必填 `en`，`zh` 可选；单行，含 `: ` 时要加引号）、
-`tarball`（可选，只有仓库无法从源码安装时才需要）。
+`tarball`（可选；不发 npm 时建议提供，指向 GitHub Release 托管的 `.tgz`，市场会优先给预构建安装链接）。
 **没有 `npm:` 字段**——npm 与仓库的对应关系由 CI 从 npm 的 `repository` 自动探测，
 所以 `package.json` 的 `repository` 必须保持指向本仓库。
 
