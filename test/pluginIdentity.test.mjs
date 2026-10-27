@@ -28,9 +28,9 @@ const pkg = JSON.parse(read('package.json'))
 /** 上游标识：拼出来的（连账号名的数字串都不留），避免这条测试自己成为最后一次出现它的地方。 */
 const OLD_IDENTIFIER = ['j', '6226', '878', '1', '-', 'alt'].join('')
 
-test('package.json：自有身份 0.6.1，仓库字段指向我们自己的仓库', () => {
+test('package.json：自有身份 0.6.2，仓库字段指向我们自己的仓库', () => {
   assert.equal(pkg.name, 'dsh-skills-mcp-manager')
-  assert.equal(pkg.version, '0.6.1')
+  assert.equal(pkg.version, '0.6.2')
   assert.equal(Object.prototype.hasOwnProperty.call(pkg, 'author'), false, '不写上游作者')
   assert.equal(REPOSITORY, 'zx2021210538/dsh-skills-mcp-manager')
   const repoUrl = String(pkg.repository?.url ?? '')
@@ -65,7 +65,14 @@ test('bundle patch 与更新检查模块都用同一个名字', () => {
   assert.equal(PACKAGE_NAME, pkg.name, 'src/update.js 的 PACKAGE_NAME 必须与包名一致')
 })
 
-test('全仓自有文件里不再出现上游标识', () => {
+/**
+ * 归因文件白名单：市场维护者要求条目描述里点名 fork 来源（MIT）并说明不能同装，
+ * 所以 FORK.md / README / 市场条目模板必须出现上游名字。除这三处外，自有文件
+ * （尤其代码、package.json、cordis.patch.yml）仍然不得携带上游标识。
+ */
+const ATTRIBUTION_FILES = new Set(['FORK.md', 'README.md', 'CHANGELOG.md', 'docs/market-entry.yml'])
+
+test('上游标识只允许出现在归因文件里（代码/清单里必须清零）', () => {
   const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.preview'])
   const SKIP_FILES = new Set(['lib/client.js'])
   const walk = (dir, out = []) => {
@@ -86,5 +93,9 @@ test('全仓自有文件里不再出现上游标识', () => {
     if (!/\.(mjs|js|jsx|json|md|yml|yaml|css|svg|txt|html)$|(^|\/)(LICENSE|\.gitignore)$/.test(rel)) continue
     if (read(rel).includes(OLD_IDENTIFIER)) hits.push(rel)
   }
-  assert.deepEqual(hits, [], `这些自有文件里还留着上游标识：${hits.join(', ')}`)
+  const unexpected = hits.filter((rel) => !ATTRIBUTION_FILES.has(rel))
+  assert.deepEqual(unexpected, [], `这些非归因文件里还留着上游标识：${unexpected.join(', ')}`)
+  for (const rel of ATTRIBUTION_FILES) {
+    assert.equal(hits.includes(rel), true, `${rel} 应写明 fork 来源（市场条目要求）`)
+  }
 })

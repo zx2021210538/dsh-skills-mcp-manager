@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.2 — 归因与市场条目：点名 fork 来源，声明与上游不能同装
+
+> 纯文档 / 元数据版本（运行时代码只改了显示的版本号）。
+
+### 1. 市场条目修正（awesome-dsh-plugin PR #9248 review）
+
+- 维护者指出条目描述没有点名 fork 来源。现在描述开头明确写出：本插件 fork 自
+  **`j62268781-alt/dsh-skills-mcp-manager`**（MIT，基线 `d185e88` = 其 `0.5.6` 发布版），
+  并说明两者注册**同一个插件 id**，**不能同时安装**（后装的那份会替换另一份）。
+- 描述同时改为逐项列出相对基线新增的能力（无损 `!!js` 写回、保存闸门式工具过滤、跨 10 个外部
+  Agent 目录的技能治理与真正的模型侧启停、分类/回收站、仓库安装更新回滚、导入、在线市场、
+  工作区视图、侧栏面板、双主题修复、自有 Releases 更新检查），避免被当成上游条目的简单重复。
+- 条目 tarball 指向本版 `v0.6.2` 的 Release 资产。
+
+### 2. 仓库内的归因与测试口径
+
+- `FORK.md` / `README.md` 写明上游仓库链接、基线版本与「不能同装」；`LICENSE` 保持 MIT
+  （上游同样 MIT，版权与许可声明原文保留）。
+- `test/pluginIdentity.test.mjs` 的口径从「全仓不得出现上游标识」调整为「上游标识只允许出现在
+  归因文件 `FORK.md` / `README.md` / `docs/market-entry.yml`，代码、`package.json`、
+  `cordis.patch.yml` 等一律清零」——既有自有身份约束不变，同时满足市场条目的署名要求。
+
+### 验证
+
+- `npm test`：700 项（696 通过 / 4 项按平台跳过）；`npm run check:names`、`npm run build` 全绿。
+- 发版后由 `publish.yml` 用 OIDC Trusted Publishing 自动发 npm（带 provenance），
+  Release 资产上传 tgz。
+
 ## 0.6.1 — npm 发布 + Trusted Publishing；README 截图；市场条目就绪
 
 > 运行时代码只改了显示的版本号，主要是发布链路与文档。

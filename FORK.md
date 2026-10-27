@@ -1,16 +1,21 @@
 # 这个仓库是什么
 
-本仓库的代码源自一份 **MIT 许可**的既有实现（基线 `d185e88` = 发布版 `0.5.6`）。自 **0.6.0**
-起它就是我们自己的插件：包名 `dsh-skills-mcp-manager`（无 scope），身份、频道与发布链路都
-归我们自己，仓库在 <https://github.com/zx2021210538/dsh-skills-mcp-manager>。派生与自用没有
-授权问题（MIT 允许）。
+本仓库是 [**`j62268781-alt/dsh-skills-mcp-manager`**](https://github.com/j62268781-alt/dsh-skills-mcp-manager)
+（MIT 许可）在基线 `d185e88`（其发布版 `0.5.6`）上的分叉。自 **0.6.0** 起由我们独立维护：
+包名 `dsh-skills-mcp-manager`（无 scope），仓库在 <https://github.com/zx2021210538/dsh-skills-mcp-manager>，
+发布链路（GitHub Releases + npm OIDC）也是我们自己的。派生与发布没有授权问题（MIT 允许）。
+
+> **两者不能同时安装**：上游与本插件注册同一个插件 id `dsh-skills-mcp-manager`（settings 命名空间、
+> 路由前缀也相同），后装的那份会替换另一份。选一个装。
 
 起步的原因是修一个会**破坏用户配置**的 bug（`!!js` 表达式被固化，见 `CHANGELOG` 0.5.7）。
 之后按照 `@michengai/dsh-skills-manager`（Apache-2.0）的能力清单，把「技能管理」这一半
 补齐到同等水平，UI 全部重写成本插件自己的 `smp-*` 风格。**没有拷贝它们的代码**：只对齐
-能力与协议，实现是本仓库自己的（协议来源见各模块头部注释）。
+能力与协议，实现是本仓库自己的（协议来源见各模块头部注释）。逐个版本累计下来，`0.5.7`
+起已发布 20 多个版本，能力差异见下面第一节的对照表；大到这个程度已经不适合
+再往原仓库提补丁，所以我们把它作为独立插件继续维护。
 
-当前版本 `0.6.1`。测试 700 项（696 通过 / 4 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
+当前版本 `0.6.2`。测试 700 项（696 通过 / 4 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
 
 ---
 

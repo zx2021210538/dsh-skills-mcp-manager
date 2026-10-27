@@ -4,7 +4,7 @@ name: ci
 # 发版走的是 publish.yml（release published 触发），两者互不替代：
 # publish 自己也会再跑一次 gate，避免「CI 绿了但发的是另一个 commit」。
 #
-# `dev-*` 是**开发分支**（例如 0.6.1 的开发在 dev-0.6.1 上）：它们只跑 CI，不是发布源。
+# `dev-*` 是**开发分支**（例如 0.6.2 的开发在 dev-0.6.2 上）：它们只跑 CI，不是发布源。
 # 发布只认 release tag，而 publish.yml 没有任何 push/branch 触发条件 —— 所以放开这里
 # 不会让开发分支有机会发包。
 on:

@@ -3,7 +3,7 @@
  *
  * ## 更新源就是本仓库
  *
- * 发布方式是 GitHub Release：tag 形如 `v0.6.1`，并附上打包好的 `.tgz`。
+ * 发布方式是 GitHub Release：tag 形如 `v0.6.2`，并附上打包好的 `.tgz`。
  * 检查逻辑优先读 **releases/latest**；如果仓库还没创建任何 release（例如刚建仓），
  * 退回读默认分支的 `package.json`，这样「版本号在仓库里」永远是可查的。
  *

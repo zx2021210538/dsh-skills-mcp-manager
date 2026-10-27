@@ -25,7 +25,7 @@
 ```jsonc
 {
   "name": "dsh-skills-mcp-manager",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/zx2021210538/dsh-skills-mcp-manager.git" },
   "homepage": "https://github.com/zx2021210538/dsh-skills-mcp-manager#readme",
@@ -70,15 +70,15 @@ npm pack --dry-run      # 只看清单：应有 dist/**、lib/client.js、cordis
 npm version minor --no-git-tag-version
 
 # 2) 提交并推到发布线
-git add -A && git commit -m "release: v0.6.1"
+git add -A && git commit -m "release: v0.6.2"
 git push origin main
 
 # 3) 打 tag 并推送
-git tag v0.6.1
-git push origin v0.6.1
+git tag v0.6.2
+git push origin v0.6.2
 ```
 
-然后在 GitHub 上 **Releases → Draft a new release**，选 `v0.6.1`，发布（Publish release）。
+然后在 GitHub 上 **Releases → Draft a new release**，选 `v0.6.2`，发布（Publish release）。
 `publish.yml` 会自动：
 
 1. 校验 `v<package.json version>` == release tag（不一致直接失败，绝不发出号不对的包）；
@@ -148,7 +148,7 @@ data/plugins/<owner>__dsh-skills-mcp-manager.yml
 url: 'https://github.com/zx2021210538/dsh-skills-mcp-manager'
 name: 'zx2021210538/dsh-skills-mcp-manager'
 category: ui
-tarball: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.1/dsh-skills-mcp-manager-0.6.1.tgz'
+tarball: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.2/dsh-skills-mcp-manager-0.6.2.tgz'
 description:
   en: '…英文一行…'
   zh: '…中文一行…'

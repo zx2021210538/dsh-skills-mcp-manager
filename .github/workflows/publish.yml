@@ -2,7 +2,7 @@ name: publish
 
 # 发版流程：GitHub Releases 是唯一的发布源。
 #
-#   在 GitHub 上发布一个 Release（tag 形如 v0.6.1）
+#   在 GitHub 上发布一个 Release（tag 形如 v0.6.2）
 #     → 校验 tag 与 package.json 版本一致
 #     → 跑门禁（未定义名字 / 单测 / 冒烟 / 预览基线，缺夹具的两项自动跳过）
 #     → npm pack 生成 tarball，并把它上传到同一个 Release
