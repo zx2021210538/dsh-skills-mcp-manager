@@ -1,10 +1,10 @@
 /**
  * 自更新检查：只回答「有没有新版」，绝不自己替换文件。
  *
- * 更新源是本仓库的 GitHub Release（`releases/latest` 的 tag），没有 release 时退回默认
- * 分支的 `package.json`。插件替换自己的文件是危险的：宿主进程已加载这一代模块，换了磁盘
- * 上的文件后进程里跑的仍是旧代码，界面却会以为升级成功。所以这里只测「取数与比较」，
- * 升级交给插件管理器（或用户按 README 重装）。
+ * 更新源顺序与插件市场安装源对齐：**npm registry latest** → GitHub Release tag →
+ * 默认分支 `package.json`。插件替换自己的文件是危险的：宿主进程已加载这一代模块，
+ * 换了磁盘上的文件后进程里跑的仍是旧代码，界面却会以为升级成功。所以这里只测取数与
+ * 比较，升级交给插件管理器。
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -42,116 +42,125 @@ test('compareVersions：点分数字比较，预发布后缀不影响主段', ()
   assert.equal(compareVersions('', '1.0.0'), null)
 })
 
-test('checkForUpdate：读 GitHub Release 的 tag，发现新版本', async () => {
+test('checkForUpdate：首选 npm registry latest，来源与市场安装源一致', async () => {
   let asked = ''
   const result = await checkForUpdate({
-    currentVersion: '0.6.0',
+    currentVersion: '0.6.2',
     fetchImpl: async (url) => {
       asked = String(url)
-      return reply({ tag_name: 'v0.6.1', html_url: 'https://github.com/x/y/releases/tag/v0.6.1' })
+      return reply({ name: PACKAGE_NAME, version: '0.6.3' })
     },
   })
-  assert.equal(asked, `https://api.github.com/repos/${REPOSITORY}/releases/latest`)
+  assert.equal(asked, `https://registry.npmjs.org/${PACKAGE_NAME}/latest`)
   assert.equal(result.ok, true, result.reason)
-  assert.equal(result.latest, '0.6.1', 'v 前缀要去掉')
+  assert.equal(result.latest, '0.6.3')
   assert.equal(result.updateAvailable, true)
-  assert.equal(result.source, 'release')
-  assert.match(result.url, /releases\/tag\/v0\.6\.1$/)
+  assert.equal(result.source, 'npm')
+  assert.equal(result.url, `https://github.com/${REPOSITORY}/releases`)
 })
 
 test('checkForUpdate：已是最新 / 本机更新都不提示「有更新」', async () => {
   const same = await checkForUpdate({
-    currentVersion: '0.6.0',
-    fetchImpl: async () => reply({ tag_name: 'v0.6.0' }),
+    currentVersion: '0.6.3',
+    fetchImpl: async () => reply({ version: '0.6.3' }),
   })
   assert.equal(same.ok, true, same.reason)
   assert.equal(same.updateAvailable, false)
 
   const newer = await checkForUpdate({
     currentVersion: '0.7.0',
-    fetchImpl: async () => reply({ tag_name: 'v0.6.0' }),
+    fetchImpl: async () => reply({ version: '0.6.3' }),
   })
-  assert.equal(newer.updateAvailable, false, '本机比仓库新时不该提示降级')
+  assert.equal(newer.updateAvailable, false, '本机比 registry 新时不该提示降级')
 })
 
-test('checkForUpdate：仓库还没有 release 时退回默认分支的 package.json', async () => {
+test('checkForUpdate：npm 404 时回退 GitHub Release 的 tag', async () => {
   const result = await checkForUpdate({
-    currentVersion: '0.6.0',
-    repository: 'x/y',
+    currentVersion: '0.6.2',
     fetchImpl: routed([
-      [/\/releases\/latest$/, () => reply({ message: 'Not Found' }, 404)],
-      [/raw\.githubusercontent\.com\/x\/y\/main\/package\.json$/, () => reply({ version: '0.6.2' })],
+      [/registry\.npmjs\.org\/dsh-skills-mcp-manager\/latest$/, () => reply({}, 404)],
+      [/\/releases\/latest$/, () => reply({ tag_name: 'v0.6.3', html_url: 'https://github.com/x/y/releases/tag/v0.6.3' })],
     ]),
   })
   assert.equal(result.ok, true, result.reason)
-  assert.equal(result.latest, '0.6.2')
-  assert.equal(result.source, 'package.json')
-  assert.equal(result.updateAvailable, true)
-  assert.match(result.url, /github\.com\/x\/y$/)
+  assert.equal(result.latest, '0.6.3')
+  assert.equal(result.source, 'GitHub Release')
+  assert.match(result.url, /releases\/tag\/v0\.6\.3$/)
 })
 
-test('checkForUpdate：release 是 404、回退的 package.json 也读不到时给出原因', async () => {
-  const result = await checkForUpdate({
-    currentVersion: '0.6.0',
+test('checkForUpdate：npm 网络失败 / 版本号无效时也回退 GitHub', async () => {
+  const offline = await checkForUpdate({
+    currentVersion: '0.6.2',
     fetchImpl: routed([
+      [/registry\.npmjs\.org/, () => { throw new Error('offline npm') }],
+      [/\/releases\/latest$/, () => reply({ tag_name: 'v0.6.4' })],
+    ]),
+  })
+  assert.equal(offline.ok, true, offline.reason)
+  assert.equal(offline.latest, '0.6.4')
+  assert.equal(offline.source, 'GitHub Release')
+
+  const invalid = await checkForUpdate({
+    currentVersion: '0.6.2',
+    fetchImpl: routed([
+      [/registry\.npmjs\.org/, () => reply({ version: 'not-a-version' })],
+      [/\/releases\/latest$/, () => reply({ tag_name: 'v0.6.4' })],
+    ]),
+  })
+  assert.equal(invalid.ok, true, invalid.reason)
+  assert.equal(invalid.latest, '0.6.4')
+})
+
+test('checkForUpdate：npm 与 GitHub 都失败时回退默认分支 package.json', async () => {
+  const result = await checkForUpdate({
+    currentVersion: '0.6.2',
+    repository: 'x/y',
+    fetchImpl: routed([
+      [/registry\.npmjs\.org/, () => { throw new Error('offline npm') }],
+      [/\/releases\/latest$/, () => reply({ message: 'rate limited' }, 403)],
+      [/raw\.githubusercontent\.com\/x\/y\/main\/package\.json$/, () => reply({ version: '0.6.5' })],
+    ]),
+  })
+  assert.equal(result.ok, true, result.reason)
+  assert.equal(result.latest, '0.6.5')
+  assert.equal(result.source, 'package.json')
+  assert.equal(result.updateAvailable, true)
+})
+
+test('checkForUpdate：三条链路都读不到时把各自原因带出来', async () => {
+  const result = await checkForUpdate({
+    currentVersion: '0.6.2',
+    repository: 'x/y',
+    fetchImpl: routed([
+      [/registry\.npmjs\.org/, () => reply({}, 500)],
       [/\/releases\/latest$/, () => reply({}, 404)],
       [/package\.json$/, () => reply({}, 500)],
     ]),
   })
   assert.equal(result.ok, false)
-  assert.match(String(result.reason), /仓库里的 package\.json 也读不到/)
-  assert.match(String(result.reason), /HTTP 500/)
+  assert.match(String(result.reason), /npm/)
+  assert.match(String(result.reason), /GitHub/)
+  assert.match(String(result.reason), /package\.json/)
 })
 
-test('checkForUpdate：GitHub API 被限流（403）时仍能从 package.json 读出结论', async () => {
-  // GitHub 匿名 API 限额 60 次/小时；插件不应因为限流就告诉用户「检查更新失败」。
-  const result = await checkForUpdate({
-    currentVersion: '0.6.0',
-    fetchImpl: routed([
-      [/\/releases\/latest$/, () => reply({ message: 'API rate limit exceeded' }, 403)],
-      [/raw\.githubusercontent\.com\/.*\/main\/package\.json$/, () => reply({ version: '0.6.0' })],
-    ]),
-  })
-  assert.equal(result.ok, true, result.reason)
-  assert.equal(result.source, 'package.json')
-  assert.equal(result.updateAvailable, false)
-})
-
-test('checkForUpdate：网络失败、HTTP 错误、缺 tag、缺 version 都给出原因', async () => {
-  assert.match(
-    String((await checkForUpdate({ currentVersion: '1.0.0', fetchImpl: async () => { throw new Error('offline') } })).reason),
-    /请求 GitHub 发布版本失败/,
-  )
-  assert.match(
-    String((await checkForUpdate({ currentVersion: '1.0.0', fetchImpl: async () => reply({}, 500) })).reason),
-    /HTTP 500/,
-  )
-  assert.match(
-    String((await checkForUpdate({ currentVersion: '1.0.0', fetchImpl: async () => reply({}) })).reason),
-    /没有 tag 名/,
-  )
-  assert.match(
-    String((await checkForUpdate({ currentVersion: '1.0.0', fetchImpl: async () => reply({ tag_name: 'abc' }) })).reason),
-    /版本号无法比较/,
-  )
-  assert.match(String((await checkForUpdate({ currentVersion: '' })).reason), /当前版本/)
-  assert.match(String((await checkForUpdate({ currentVersion: '1.0.0', repository: '' })).reason), /更新源仓库/)
-})
-
-test('checkForUpdate：自定义仓库与分支（URL 编码，不拼接奇怪字符）', async () => {
+test('checkForUpdate：scoped 包名编码成 %2F，且自定义仓库/分支可用', async () => {
   const seen = []
-  await checkForUpdate({
+  const result = await checkForUpdate({
     currentVersion: '1.0.0',
+    packageName: '@scope/pkg',
     repository: 'me/plugin',
     branch: 'release/stable',
     fetchImpl: async (url) => {
       seen.push(String(url))
+      if (String(url).includes('registry.npmjs.org')) return reply({}, 404)
       if (String(url).includes('/releases/latest')) return reply({}, 404)
       return reply({ version: '1.0.0' })
     },
   })
-  assert.equal(seen[0], 'https://api.github.com/repos/me/plugin/releases/latest')
-  assert.equal(seen[1], 'https://raw.githubusercontent.com/me/plugin/release%2Fstable/package.json')
+  assert.equal(result.ok, true, result.reason)
+  assert.equal(seen[0], 'https://registry.npmjs.org/%40scope%2Fpkg/latest')
+  assert.equal(seen[1], 'https://api.github.com/repos/me/plugin/releases/latest')
+  assert.equal(seen[2], 'https://raw.githubusercontent.com/me/plugin/release%2Fstable/package.json')
 })
 
 test('更新源常量与 package.json 一致', () => {

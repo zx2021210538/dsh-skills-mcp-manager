@@ -1,11 +1,15 @@
 /**
- * 本插件的自更新检查：问 GitHub 仓库「最新发布版本是多少」，与本机版本比一下。
+ * 本插件的自更新检查：回答「有没有比本机更新的版本」，从不自己安装。
  *
- * ## 更新源就是本仓库
+ * ## 更新源与插件市场的安装源保持一致
  *
- * 发布方式是 GitHub Release：tag 形如 `v0.6.2`，并附上打包好的 `.tgz`。
- * 检查逻辑优先读 **releases/latest**；如果仓库还没创建任何 release（例如刚建仓），
- * 退回读默认分支的 `package.json`，这样「版本号在仓库里」永远是可查的。
+ * 首选 **npm registry 的 latest**（`https://registry.npmjs.org/<name>/latest`）：市场里的
+ * 安装/升级走的就是这个包，所以「检查到的新版本」永远是可安装的那一版；npm 读取不需要认证，
+ * 也没有 GitHub 匿名 API 的每小时限流。网络或 registry 读不到时，依次回退：
+ *
+ *   1. GitHub Release `releases/latest` 的 tag（正常发布时与 npm 同版本，因为发版流水线会
+ *      校验 tag == package.json version 并发 npm）；
+ *   2. 默认分支的 `package.json`（仓库是否发布过都能读出「源码里的版本号」）。
  *
  * ## 只做「检查」，不做「安装」
  *
@@ -14,10 +18,10 @@
  * 所以这里只负责**回答「有没有新版」**，把「怎么升」留给它（或用户按 README 重装一次）。
  */
 
-/** 本包的 npm 名字（与 package.json 的 name 一致；以后若发布到 registry 可直接复用）。 */
+/** 本包的 npm 名字（与 package.json 的 name 一致）。 */
 export const PACKAGE_NAME = 'dsh-skills-mcp-manager'
 
-/** 更新源仓库（owner/name）。发版、检查更新都以这里为准。 */
+/** 发布仓库（owner/name）。版本回退与「发布页」链接都以这里为准。 */
 export const REPOSITORY = 'zx2021210538/dsh-skills-mcp-manager'
 
 /** 读不到 release 时回退读取的分支。 */
@@ -26,13 +30,18 @@ export const DEFAULT_BRANCH = 'main'
 /** 人看的发布页。 */
 export const RELEASES_URL = `https://github.com/${REPOSITORY}/releases`
 
+const REGISTRY = 'https://registry.npmjs.org'
 const GITHUB_API = 'https://api.github.com'
 const RAW_GITHUB = 'https://raw.githubusercontent.com'
 const TIMEOUT_MS = 8000
 
-/** GitHub API 要求带 UA；不带会被 403。 */
-const HEADERS = {
+const HEADERS_GITHUB = {
   accept: 'application/vnd.github+json',
+  'user-agent': 'dsh-skills-mcp-manager-update-check',
+}
+
+const HEADERS_NPM = {
+  accept: 'application/json',
   'user-agent': 'dsh-skills-mcp-manager-update-check',
 }
 
@@ -69,11 +78,11 @@ export function compareVersions(left, right) {
  *
  * @returns `{ ok: true, status, payload }` 或 `{ ok: false, status, reason }`
  */
-async function getJson(fetchImpl, url, what) {
+async function getJson(fetchImpl, url, what, headers) {
   let response
   try {
     response = await fetchImpl(url, {
-      headers: HEADERS,
+      headers,
       redirect: 'error',
       signal: typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(TIMEOUT_MS) : undefined,
     })
@@ -90,18 +99,16 @@ async function getJson(fetchImpl, url, what) {
 }
 
 /**
- * 问 GitHub 仓库最新版本是多少。
+ * 问「最新可安装版本」是多少。
  *
- * 顺序：`GET /repos/<repo>/releases/latest` → 取不到（没有 release / API 403 限流 /
- * 网络失败）时退到 `GET https://raw.githubusercontent.com/<repo>/<branch>/package.json`。
- * 退路很重要：GitHub API 对匿名请求有每小时 60 次的限额，而 raw 文件没有这个限制；
- * 版本号本来就在 package.json 里，没必要因为限流就告诉用户「检查更新失败」。
+ * 顺序：npm registry latest → GitHub Release tag → 默认分支 `package.json`。
  *
  * @returns `{ ok: true, current, latest, updateAvailable, url, source }`
  *          或 `{ ok: false, reason }`
  */
 export async function checkForUpdate({
   currentVersion,
+  packageName = PACKAGE_NAME,
   repository = REPOSITORY,
   branch = DEFAULT_BRANCH,
   fetchImpl = globalThis.fetch,
@@ -109,43 +116,63 @@ export async function checkForUpdate({
   const current = String(currentVersion ?? '').trim()
   if (current === '') return { ok: false, reason: '不知道当前版本' }
   if (typeof fetchImpl !== 'function') return { ok: false, reason: '当前环境没有 fetch' }
+  const name = String(packageName ?? '').trim()
+  if (name === '') return { ok: false, reason: '没有配置包名' }
   const repo = String(repository ?? '').trim()
   if (repo === '') return { ok: false, reason: '没有配置更新源仓库' }
   const releasesPage = `https://github.com/${repo}/releases`
 
-  let latest = ''
-  let url = releasesPage
-  let source = 'release'
+  /** 比较并组装结果；版本号缺失或无法解析时返回 null，让调用方继续回退。 */
+  const finish = (rawLatest, source, url) => {
+    const latest = String(rawLatest ?? '').trim().replace(/^v/i, '')
+    if (latest === '') return null
+    const order = compareVersions(latest, current)
+    if (order === null) return null
+    return { ok: true, current, latest, updateAvailable: order > 0, url, source }
+  }
 
-  const release = await getJson(fetchImpl, `${GITHUB_API}/repos/${repo}/releases/latest`, 'GitHub 发布版本')
+  let npmReason = ''
+  const npmMeta = await getJson(fetchImpl, `${REGISTRY}/${encodeURIComponent(name)}/latest`, 'npm registry', HEADERS_NPM)
+  if (npmMeta.ok === true) {
+    const result = finish(npmMeta.payload?.version, 'npm', releasesPage)
+    if (result !== null) return result
+    npmReason = 'npm registry 没有给出有效版本号'
+  } else {
+    npmReason = String(npmMeta.reason ?? '读不到 npm registry')
+  }
+
+  let githubReason = ''
+  const release = await getJson(fetchImpl, `${GITHUB_API}/repos/${repo}/releases/latest`, 'GitHub 发布版本', HEADERS_GITHUB)
   if (release.ok === true) {
     const tag = String(release.payload?.tag_name ?? '').trim()
-    if (tag === '') return { ok: false, reason: 'GitHub 最新发布没有 tag 名' }
-    latest = tag.replace(/^v/i, '')
-    if (typeof release.payload?.html_url === 'string' && release.payload.html_url !== '') url = release.payload.html_url
+    const url = typeof release.payload?.html_url === 'string' && release.payload.html_url !== ''
+      ? release.payload.html_url
+      : releasesPage
+    const result = tag === '' ? null : finish(tag, 'GitHub Release', url)
+    if (result !== null) return result
+    githubReason = 'GitHub 最新发布没有有效 tag'
   } else {
-    // release 读不到（404 未发布 / 403 限流 / 网络失败等）：退到默认分支的 package.json。
-    const rawBranch = String(branch ?? '').trim() === '' ? 'main' : String(branch).trim()
-    const manifest = await getJson(
-      fetchImpl,
-      `${RAW_GITHUB}/${repo}/${encodeURIComponent(rawBranch)}/package.json`,
-      '仓库里的 package.json',
-    )
-    if (manifest.ok !== true) {
-      return {
-        ok: false,
-        reason: `${String(release.reason ?? '读不到 GitHub 发布版本')}；仓库里的 package.json 也读不到（${String(manifest.reason ?? '')}）`,
-      }
-    }
-    latest = String(manifest.payload?.version ?? '').trim()
-    if (latest === '') return { ok: false, reason: '仓库里的 package.json 没有 version 字段' }
-    url = `https://github.com/${repo}`
-    source = 'package.json'
+    githubReason = String(release.reason ?? '读不到 GitHub 发布版本')
   }
 
-  const order = compareVersions(latest, current)
-  if (order === null) {
-    return { ok: false, reason: `版本号无法比较（本机 ${current}，仓库 ${latest}）` }
+  let manifestReason = ''
+  const rawBranch = String(branch ?? '').trim() === '' ? 'main' : String(branch).trim()
+  const manifest = await getJson(
+    fetchImpl,
+    `${RAW_GITHUB}/${repo}/${encodeURIComponent(rawBranch)}/package.json`,
+    '仓库里的 package.json',
+    HEADERS_GITHUB,
+  )
+  if (manifest.ok === true) {
+    const result = finish(manifest.payload?.version, 'package.json', `https://github.com/${repo}`)
+    if (result !== null) return result
+    manifestReason = '仓库里的 package.json 没有有效 version'
+  } else {
+    manifestReason = String(manifest.reason ?? '读不到仓库里的 package.json')
   }
-  return { ok: true, current, latest, updateAvailable: order > 0, url, source }
+
+  return {
+    ok: false,
+    reason: `检查不到可用版本：npm（${npmReason}）；GitHub（${githubReason}）；package.json（${manifestReason}）`,
+  }
 }

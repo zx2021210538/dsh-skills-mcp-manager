@@ -5,13 +5,12 @@
 
 - 包名：`dsh-skills-mcp-manager`（**无 scope**，0.6.0 起自有身份）
 - 仓库：<https://github.com/zx2021210538/dsh-skills-mcp-manager>
-- **发布源 = GitHub Releases**：插件「设置 → Skills & MCP → 获取技能 → 插件更新」读
-  `releases/latest` 的 tag（没有 release 时退回 `main` 分支的 `package.json`，见
-  [`src/update.js`](../src/update.js)）。发布一个 Release = 用户能检查到新版本、也能下载到
-  可安装的 `.tgz`。
-- npm：<https://www.npmjs.com/package/dsh-skills-mcp-manager>，**发 Release 时由
-  `publish.yml` 用 Trusted Publishing（GitHub OIDC）自动发布**，带 provenance，不需要任何
-  npm token。市场收录以 GitHub 仓库为准，npm 只是多一条安装通道。
+- **发布源 = GitHub Releases，安装源 = npm**：一个 Release 同时产出 GitHub 资产和 npm 版本
+  （`publish.yml` 校验 tag == `package.json` version 后 OIDC 发 npm）。插件的更新检查与市场
+  安装源对齐：读 **npm registry 的 latest**，读不到时回退 `releases/latest` 的 tag，再回退
+  `main` 分支的 `package.json`（见 [`src/update.js`](../src/update.js)）。
+- npm：<https://www.npmjs.com/package/dsh-skills-mcp-manager>，**发 Release 时自动发布**，
+  带 provenance，不需要任何 npm token。市场里的版本也从 npm 取，所以三者同源。
 
 > 改包名时必须同步改五处：`package.json#name`、`lib/src/client.js` 的
 > `__ModuleLoader__.load({ id })`、`cordis.patch.yml` 的 bundle `name`、
@@ -25,7 +24,7 @@
 ```jsonc
 {
   "name": "dsh-skills-mcp-manager",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/zx2021210538/dsh-skills-mcp-manager.git" },
   "homepage": "https://github.com/zx2021210538/dsh-skills-mcp-manager#readme",
@@ -70,15 +69,15 @@ npm pack --dry-run      # 只看清单：应有 dist/**、lib/client.js、cordis
 npm version minor --no-git-tag-version
 
 # 2) 提交并推到发布线
-git add -A && git commit -m "release: v0.6.2"
+git add -A && git commit -m "release: v0.6.3"
 git push origin main
 
 # 3) 打 tag 并推送
-git tag v0.6.2
-git push origin v0.6.2
+git tag v0.6.3
+git push origin v0.6.3
 ```
 
-然后在 GitHub 上 **Releases → Draft a new release**，选 `v0.6.2`，发布（Publish release）。
+然后在 GitHub 上 **Releases → Draft a new release**，选 `v0.6.3`，发布（Publish release）。
 `publish.yml` 会自动：
 
 1. 校验 `v<package.json version>` == release tag（不一致直接失败，绝不发出号不对的包）；
@@ -94,11 +93,12 @@ git push origin v0.6.2
 ### 2.2 发布后的验证
 
 ```bash
-# 更新检查读的就是它（tag 去掉 v 后的版本号）
+# 更新检查首选 npm（与市场安装源一致）：
+npm view dsh-skills-mcp-manager version
+# 发版流水线保证它和 Release tag 同版本（tag 去掉 v）：
 curl -s https://api.github.com/repos/zx2021210538/dsh-skills-mcp-manager/releases/latest | grep tag_name
 
 # npm 版本与 provenance：
-npm view dsh-skills-mcp-manager version
 curl -s https://registry.npmjs.org/dsh-skills-mcp-manager/latest | grep -o '"attestations"[^}]*'
 
 # 插件里：设置 → Skills & MCP → 获取技能 → 插件更新 → 检查插件更新
@@ -148,7 +148,6 @@ data/plugins/<owner>__dsh-skills-mcp-manager.yml
 url: 'https://github.com/zx2021210538/dsh-skills-mcp-manager'
 name: 'zx2021210538/dsh-skills-mcp-manager'
 category: ui
-tarball: 'https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.2/dsh-skills-mcp-manager-0.6.2.tgz'
 description:
   en: '…英文一行…'
   zh: '…中文一行…'
@@ -156,7 +155,8 @@ description:
 
 校验器只认这几个键（多写会被拒）：`url`（必填，必须与仓库地址完全一致）、`name`（必填）、
 `category`（必填，从既定分类里选）、`description`（必填 `en`，`zh` 可选；单行，含 `: ` 时要加引号）、
-`tarball`（可选；不发 npm 时建议提供，指向 GitHub Release 托管的 `.tgz`，市场会优先给预构建安装链接）。
+`tarball`（可选；**本项目已发 npm，所以条目里不写 tarball**——版本与安装命令都从 npm 自动取，
+省掉每次发版更新 pinned URL 的 PR）。
 **没有 `npm:` 字段**——npm 与仓库的对应关系由 CI 从 npm 的 `repository` 自动探测，
 所以 `package.json` 的 `repository` 必须保持指向本仓库。
 

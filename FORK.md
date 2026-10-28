@@ -15,7 +15,7 @@
 起已发布 20 多个版本，能力差异见下面第一节的对照表；大到这个程度已经不适合
 再往原仓库提补丁，所以我们把它作为独立插件继续维护。
 
-当前版本 `0.6.2`。测试 700 项（696 通过 / 4 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
+当前版本 `0.6.3`。测试 700 项（696 通过 / 4 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
 
 ---
 
@@ -35,7 +35,7 @@
 | 工作区视图 | 仅下拉筛选 | ✅ 工作区 + 全局技能视图（0.5.18） |
 | 侧栏入口（主面板页） | ❌ | ✅ `main` + `sidebar.panellist`（0.5.19） |
 | locale（插件管理器里的标题/说明） | ❌（回退到包名） | ✅ `locale/en.json`、`locale/zh.json`（0.5.19） |
-| 自更新检查 | ❌ | ✅ 只检查不安装（0.5.19）；**0.6.0 起接自有仓库 Releases**，读 `releases/latest`（缺失时退回 `main` 的 `package.json`），UI 有按钮 + 发布页链接 |
+| 自更新检查 | ❌ | ✅ 只检查不安装（0.5.19）；**0.6.3 起与市场安装源对齐**：读 npm registry 的 latest（市场装的就是这个包），失败回退 GitHub Release tag、再回退 `main` 的 `package.json`；UI 有按钮 + 发布页链接 |
 
 ## 二、模块地图
 
@@ -58,7 +58,7 @@ src/
     catalog.js              skills.sh / ClawHub 的搜索、榜单、下载、安装
     catalog-route.js        市场路由（独立队列，慢操作不堵快操作）
     http.js                 写路由共用的三道守卫 + 请求体读取
-  update.js                 自更新检查（读本仓库 Releases，不替换文件）
+  update.js                 自更新检查（npm registry latest 优先，回退 Releases/package.json；不替换文件）
 lib/src/                    客户端源码（esbuild 打包成 lib/client.js）
   client.js                 Panel 本体（设置页 + 主面板页共用）
   components/               card / toolList / skillSources / dialog / tabs …

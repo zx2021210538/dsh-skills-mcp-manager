@@ -28,9 +28,9 @@ const pkg = JSON.parse(read('package.json'))
 /** 上游标识：拼出来的（连账号名的数字串都不留），避免这条测试自己成为最后一次出现它的地方。 */
 const OLD_IDENTIFIER = ['j', '6226', '878', '1', '-', 'alt'].join('')
 
-test('package.json：自有身份 0.6.2，仓库字段指向我们自己的仓库', () => {
+test('package.json：自有身份 0.6.3，仓库字段指向我们自己的仓库', () => {
   assert.equal(pkg.name, 'dsh-skills-mcp-manager')
-  assert.equal(pkg.version, '0.6.2')
+  assert.equal(pkg.version, '0.6.3')
   assert.equal(Object.prototype.hasOwnProperty.call(pkg, 'author'), false, '不写上游作者')
   assert.equal(REPOSITORY, 'zx2021210538/dsh-skills-mcp-manager')
   const repoUrl = String(pkg.repository?.url ?? '')

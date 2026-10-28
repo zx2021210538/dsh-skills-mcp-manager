@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.6.3 — 更新检查与市场安装源对齐（npm 优先）
+
+> 运行时改动只在 Host 半（`src/update.js`）；客户端 UI 不变（只改版本号）。升级后需重启 DSH
+> 让新 Host 生效。
+
+### 1. 更新检查改读 npm registry latest
+
+- 顺序固定为：**npm registry 的 latest** → GitHub Release `releases/latest` 的 tag →
+  `main` 分支的 `package.json`。
+- 原因：插件市场的安装/升级走的就是 npm 上的这个包，所以「检查到的新版本」永远是可安装的版本；
+  npm registry 读接口不需要认证，也没有 GitHub 匿名 API 的每小时限流。GitHub 在不稳定的网络下
+  不可达时，旧实现会直接显示「检查更新失败」——现在 npm 可达（用户装插件的前提）就能给出结论。
+- 结果里仍带 `url`：正常指向 GitHub Releases 页面/该版 Release，UI 的「发布页」链接不变。
+- 回退链保证「GitHub 能读、npm 暂时读不到」时也不会误报失败；三条都失败时把各自原因一并显示。
+
+### 2. 市场条目改为 npm-only（不再 pin tarball）
+
+- 条目移除 `tarball` 字段：版本、安装命令都由市场从 npm 自动取。这样以后每次发版不需要再改
+  条目/提 PR；`tarball` 也就不存在「版本 0.6.3、下载链接还停在 0.6.2」的错位。
+
+### 验证
+
+- `npm test`：700 项（696 通过 / 4 项按平台跳过）；`npm run check:names`、`npm run build` 全绿。
+
 ## 0.6.2 — 归因与市场条目：点名 fork 来源，声明与上游不能同装
 
 > 纯文档 / 元数据版本（运行时代码只改了显示的版本号）。
