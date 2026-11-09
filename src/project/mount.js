@@ -153,6 +153,22 @@ export function workspaceForCwd(cwd, workspaces = []) {
   return best
 }
 /**
+ * The one registered workspace **every** live working directory belongs to, or `''`.
+ *
+ * 面板默认值只在「所有会话都在同一个工作区」时可用：只要有一个会话不属于任何已注册工作区
+ * （或属于另一个），就没法确定用户在看哪个项目，宁可不预选。返回工作区的**注册表路径**，
+ * 因为 MCP 作用域按路径前缀匹配（技能那边另有 `singleProjectRoot` 给项目根）。
+ */
+export function singleWorkspaceForCwds(cwds = [], workspaces = []) {
+  const paths = []
+  for (const cwd of Array.isArray(cwds) ? cwds : []) {
+    const path = workspaceForCwd(cwd, workspaces)
+    if (path === '') return ''
+    if (!paths.includes(path)) paths.push(path)
+  }
+  return paths.length === 1 ? paths[0] : ''
+}
+/**
  * Project-scoped servers that apply to a working directory.
  *
  * A configured project scope is matched as a directory prefix, so a session

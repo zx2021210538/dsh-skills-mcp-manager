@@ -6,7 +6,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { workspaceForCwd } from '../src/project/mount.js'
+import { singleWorkspaceForCwds, workspaceForCwd } from '../src/project/mount.js'
 
 const ws = (...paths) => paths.map((path, index) => ({ id: `w${index}`, title: `t${index}`, path }))
 
@@ -41,4 +41,16 @@ test('workspaceForCwd：Windows 上分隔符与大小写不同的同一路径算
   const workspaces = ws('C:\\Work\\App')
   assert.equal(workspaceForCwd('C:/Work/App', workspaces), 'C:\\Work\\App')
   assert.equal(workspaceForCwd('c:\\work\\app\\sub', workspaces), 'C:\\Work\\App')
+})
+
+test('singleWorkspaceForCwds：所有会话属于同一个工作区时才给默认值', () => {
+  const workspaces = ws('/p/a', '/p/b')
+  assert.equal(singleWorkspaceForCwds(['/p/a', '/p/a/sub'], workspaces), '/p/a',
+    '同一工作区里的多个会话（含子目录）仍算同一个')
+  assert.equal(singleWorkspaceForCwds(['/p/a', '/p/b'], workspaces), '',
+    '两个工作区同时活跃时不猜')
+  assert.equal(singleWorkspaceForCwds(['/p/a', '/p/elsewhere'], workspaces), '',
+    '有一个会话不属于任何已注册工作区时不猜')
+  assert.equal(singleWorkspaceForCwds([], workspaces), '')
+  assert.equal(singleWorkspaceForCwds(undefined, workspaces), '')
 })

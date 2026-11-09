@@ -39,7 +39,7 @@
 
 ### 验证
 
-- `npm test`：**744 项（740 通过 / 4 项按平台跳过 / 0 失败）**；`npm run build`、`npm run check:names` 通过。
+- `npm test`：**745 项（741 通过 / 4 项按平台跳过 / 0 失败）**；`npm run build`、`npm run check:names` 通过。
 - Host 冒烟（真实 DSH 运行时）新增：项目级技能只在自己的 cwd 下对模型可见、别的项目看不到、
   没有 cwd 时不列；`/runtime` 的 `currentWorkspace` 是注册表路径、`currentWorkspaceRoot` 是项目根。
 - 新增回归测试：`skills.roots.test.mjs`、`skills.providerCwdScope.test.mjs`、

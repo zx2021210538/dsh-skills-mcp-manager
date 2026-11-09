@@ -28,7 +28,8 @@ test('currentWorkspace 不再取第一个 live agent，并且同时发布项目�
     '第一个 agent 只是创建顺序，不是用户正在看的会话')
   assert.doesNotMatch(source, /currentWorkspace:\s*projectRootOf\(cwds\[0\]\)/,
     '不能再把第一个 cwd 归一化后当默认工作区')
-  assert.match(source, /workspaceForCwd\(cwd, spaces\)/, '默认工作区要用注册表路径匹配（支持子目录）')
+  assert.match(source, /singleWorkspaceForCwds\(cwds, spaces\)/,
+    '默认工作区要用注册表路径匹配（支持子目录），且要求所有会话属于同一个')
   assert.match(source, /const currentWorkspaceRoot = singleProjectRoot\(cwds\)/,
     '技能默认值要独立发布项目根：同仓库多工作区时根仍可确定')
   assert.match(source, /currentWorkspace,\s*\n\s*currentWorkspaceRoot,/, '/runtime 必须同时返回两个字段')

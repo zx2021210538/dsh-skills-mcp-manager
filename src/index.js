@@ -47,7 +47,7 @@ import { registerSkillImportRoute } from './skills/import-route.js'
 import { installCatalogSkill, listClawHub, searchClawHub, searchSkillsSh } from './skills/catalog.js'
 import { registerSkillCatalogRoute } from './skills/catalog-route.js'
 import { checkForUpdate } from './update.js'
-import { serverMountConfig, setMountClient, workingDirectoryOf, workspaceForCwd } from './project/mount.js'
+import { serverMountConfig, setMountClient, singleWorkspaceForCwds, workingDirectoryOf } from './project/mount.js'
 import { GLOBAL_SCOPE, projectServersFor, serverRows, serverSetKey } from './mcp/serverRows.js'
 import { readMcpRowsFromPatch } from './patch/readRows.js'
 import { connectionDraftOf } from './mcp/connection.js'
@@ -1781,12 +1781,7 @@ export function apply(ctx, config) {
      * 其余情况（多个工作区同时活跃、会话不属于任何注册工作区）一律留空：让用户自己选，
      * 好过替用户猜。
      */
-    const liveWorkspaces = []
-    for (const cwd of cwds) {
-      const path = workspaceForCwd(cwd, spaces)
-      if (path !== '' && !liveWorkspaces.includes(path)) liveWorkspaces.push(path)
-    }
-    const currentWorkspace = liveWorkspaces.length === 1 ? liveWorkspaces[0] : ''
+    const currentWorkspace = singleWorkspaceForCwds(cwds, spaces)
     const currentWorkspaceRoot = singleProjectRoot(cwds)
     const skillDirs = {
       userDsh: join(resolveDshHome(), 'skills'),
