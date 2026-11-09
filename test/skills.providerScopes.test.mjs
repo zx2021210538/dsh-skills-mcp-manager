@@ -87,6 +87,7 @@ const disabledSnapshot = () => ({
       name: 'archify',
       description: '架构图',
       source: 'project-agents',
+      scope: '/workspace',
       rank: policyRank('project-agents'),
       enabled: false,
       path: '/workspace/.agents/skills/archify/SKILL.md',
@@ -135,7 +136,7 @@ test('attachAgent：每个 agent 都在**自己的 ctx** 上注册，且候选�
   assert.equal(fixture.registrations.length, 2, '两个 agent 各注册一次')
   assert.deepEqual(fixture.injects.map((entry) => entry.deps), [['skills'], ['skills']])
 
-  const list = await fixture.registrations[0].provider.list()
+  const list = await fixture.registrations[0].provider.list({ cwd: '/workspace' })
   const disabled = list.find((candidate) => candidate.name === 'archify')
   assert.ok(disabled, '停用的技能仍要报出来（只是不可调用）')
   assert.equal(disabled.rank, NATIVE_RANKS['project-agents'] + POLICY_RANK_OFFSET)
@@ -260,7 +261,7 @@ test('agent.ctx 不可用 / inject 抛错：attach 返回 false 并记录原因�
 test('createGovernanceProvider 的 root 行为不变（旧测试的语义仍然成立）', async () => {
   const provider = createGovernanceProvider({ snapshot: disabledSnapshot })
   assert.equal(provider.name, PROVIDER_NAME)
-  const list = await provider.list()
+  const list = await provider.list({ cwd: '/workspace' })
   const archify = list.find((candidate) => candidate.name === 'archify')
   assert.equal(archify.rank, NATIVE_RANKS['project-agents'] + POLICY_RANK_OFFSET)
   assert.equal(archify.invocation.modelInvocable, false)

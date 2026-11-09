@@ -52,8 +52,11 @@ export function createGovernanceProvider({ snapshot, log = null }) {
    * 清掉"上一次结果"。
    *
    * 策略被改过（`invalidate()`）之后不能再拿旧结果兜底：否则「刚点完停用 → 下一次快照读失败」
-   * 会把停用前的策略当成答案返回，模型照样能调用 —— 失败方向变成 fail-open，与整个治理的目标
-   * 相反。清空后失败时返回空列表（本插件独家来源暂时不可见，原生来源不受影响）。
+   * 会把停用前的策略当成答案返回，模型照样能调用。
+   *
+   * 清空后失败时返回空列表 —— 这对「停用」其实是 **fail-open**：没有 `invocation=false` 的影子
+   * 候选，原生 rank 100/200 的 enabled 候选就赢了。另一个选项（保留旧快照）同样 fail-open，
+   * 还会把过期策略当成答案、更难发现。空列表至少在下一次成功读取时立刻自愈，所以选它。
    */
   const resetCache = () => { lastGoodSkills = [] }
   return {

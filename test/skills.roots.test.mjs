@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { distinctProjectRoots, projectRootFor, samePath, singleProjectRoot } from '../src/skills/roots.js'
+import { distinctProjectRoots, projectRootFor, samePath, singleListedRoot, singleProjectRoot } from '../src/skills/roots.js'
 
 test('projectRootFor：最近的 .git 祖先是项目根，没有 .git 时退回目录本身', () => {
   const home = mkdtempSync(join(tmpdir(), 'smp-roots-'))
@@ -56,6 +56,23 @@ test('singleProjectRoot：只有一个根时返回它，零个或多个时返回
   assert.equal(singleProjectRoot([repo, nested]), resolve(repo), '同仓库多个目录仍是一个根')
   assert.equal(singleProjectRoot([repo, other]), '', '两个项目不能猜一个')
   assert.equal(singleProjectRoot([]), '')
+})
+
+test('singleListedRoot：根必须在调用方可提供的选项里', () => {
+  const home = mkdtempSync(join(tmpdir(), 'smp-roots-'))
+  const repo = join(home, 'repo')
+  const unregistered = join(home, 'session-only')
+  mkdirSync(join(repo, '.git'), { recursive: true })
+  mkdirSync(unregistered, { recursive: true })
+
+  assert.equal(singleListedRoot([repo], [resolve(repo)]), resolve(repo))
+  assert.equal(singleListedRoot([repo], [resolve(unregistered)]), '',
+    '默认值不在下拉选项里时必须留空，否则 select 显示空白但内部已有值')
+  assert.equal(singleListedRoot([unregistered], []), '')
+  assert.equal(singleListedRoot([], [resolve(repo)]), '')
+  if (process.platform === 'win32') {
+    assert.equal(singleListedRoot([repo], [repo.toUpperCase()]), resolve(repo), 'Windows 大小写不算域外')
+  }
 })
 
 test('samePath：同一目录的不同写法视为相同（Windows 上忽略大小写与分隔符）', () => {

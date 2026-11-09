@@ -30,7 +30,7 @@ import { scanImportSource } from './import/scan.js'
 import { registerImportRoute } from './import/route.js'
 import { beat } from './diagnostics/heartbeat.js'
 import { agentsHome, projectRootOf } from './skills/reconcile.js'
-import { distinctProjectRoots, singleProjectRoot } from './skills/roots.js'
+import { distinctProjectRoots, singleListedRoot } from './skills/roots.js'
 import { bodyOf, discoverSkills } from './skills/discover.js'
 import { createSkill, deleteSkill, renameSkill, updateSkill, writableRoots } from './skills/write.js'
 import { registerSkillRoute } from './skills/route.js'
@@ -1512,6 +1512,14 @@ export function apply(ctx, config) {
     if (agent === undefined || agent === null || agents.has(agent)) return
     const entry = { cwd: workingDirectoryOf(agent), mounted: new Map() }
     agents.set(agent, entry)
+    /**
+     * 新 agent 的 cwd 可能带来新的项目根，而 `governanceSnapshot` 有 1 秒 memo。
+     * 不在这里清掉的话，它第一次 `list({cwd})` 拿到的快照可能还没扫过那个根：该根下
+     * **被停用**的项目级技能不会上报 `invocation=false` 的影子候选，原生 rank 100/200 就赢了
+     * —— 面板说已停用、模型却能调用。DSH 的目录缓存按 (cwd, scope, revision) 分键，新 agent
+     * 的 scope 是新的，缓存必 miss，所以清掉这一层就够。
+     */
+    invalidateSnapshotCache()
     // 技能治理：同一份 provider 也要进这个 agent 自己的 scope，否则 rank−1 的 shadow 候选
     // 只待在 global 层，会被 preset 层同名条目按「层最近者胜」压掉（停用不生效的根因）。
     governance.attachAgent(agent)
@@ -1523,6 +1531,8 @@ export function apply(ctx, config) {
     if (entry === undefined) return
     for (const mounted of entry.mounted.values()) unmount(mounted.stops)
     agents.delete(agent)
+    // 根集合变少同样要让快照失效：否则 memo 内还会继续按一个已不存在的 cwd 扫。
+    invalidateSnapshotCache()
     governance.detachAgent(agent)
   }
 
@@ -1782,7 +1792,12 @@ export function apply(ctx, config) {
      * 好过替用户猜。
      */
     const currentWorkspace = singleWorkspaceForCwds(cwds, spaces)
-    const currentWorkspaceRoot = singleProjectRoot(cwds)
+    /**
+     * 技能默认值只从 `spaces[].root` 里取：客户端「技能工作区」下拉的选项就是这些根。
+     * 直接用 live cwd 的根会在「会话不属于任何注册工作区」时给出一个下拉里不存在的值
+     * （显示空白、内部却有值）。域外就留空，让用户自己选。
+     */
+    const currentWorkspaceRoot = singleListedRoot(cwds, spaces.map((space) => space.root))
     const skillDirs = {
       userDsh: join(resolveDshHome(), 'skills'),
       userAgents: join(agentsHome(), 'skills'),

@@ -82,7 +82,7 @@ test('provider：快照失败回退的是未过滤快照，按调用方 cwd 重�
     '回退缓存不能把上一次 cwd 的过滤结果端给另一个工作区')
 })
 
-test('provider：策略失效后不再用旧快照兜底（fail-closed）', async () => {
+test('provider：策略失效后不再用旧快照兜底（代价是本次读取可能让停用短暂失效）', async () => {
   const { repoA, skills } = fixture()
   let fail = false
   const provider = createGovernanceProvider({
@@ -95,4 +95,10 @@ test('provider：策略失效后不再用旧快照兜底（fail-closed）', asyn
   provider.resetCache()
   fail = true
   assert.deepEqual(await provider.list({ cwd: repoA }), [], '失效后读盘失败要返回空，而不是停用前的策略')
+  /**
+   * 注意这里的取舍：返回空列表 = 我们不再输出 invocation=false 的影子候选，原生 rank 100/200
+   * 条目仍然可调用 —— 对「停用」来说这一次是 fail-open。另一条路是保留旧快照，但那样会把
+   * 停用前的策略当成答案（同样 fail-open，还更隐蔽）。空列表至少让「我们没读到盘」这件事
+   * 可被下一次成功读取立即纠正。
+   */
 })

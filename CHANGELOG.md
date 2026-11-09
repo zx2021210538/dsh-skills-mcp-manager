@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.6.7 — 收尾 0.6.6 的两处边界：默认根必须在下拉选项域内、agent 增删后快照立刻失效
+
+> 0.6.6 发布后复查发现的两个边界问题；不改变 0.6.6 的三项主体修复。升级后需重启 DSH。
+
+### 1. 技能默认工作区不再给出「下拉里不存在」的值
+
+- `currentWorkspaceRoot` 原来直接取 live cwd 的项目根。如果会话的 cwd 不属于任何**已注册**工作区
+  （例如带自定义 cwd 的会话，或工作区从注册表删除后重开），这个根不在「技能工作区」下拉的选项里：
+  浏览器把下拉显示成空选中，对话框内部却已经有值，「将写入 …」也照样显示那个路径 —— 用户以为
+  没选，点创建却写过去了。
+- 现在 `currentWorkspaceRoot` 只在根同时出现在 `runtime.workspaces[].root` 里时才发布（`singleListedRoot`），
+  域外一律留空，让用户在下拉里选或手填「自定义路径…」。
+
+### 2. agent 创建/移除时立刻清掉技能快照的 1 秒 memo
+
+- `governanceSnapshot` 有 1 秒缓存，而它扫哪些根取决于当前 live agent 的 cwd。新 agent 的 cwd 如果
+  带来一个新的项目根，它第一次 `provider.list({cwd})` 可能还拿到没扫过该根的旧快照：那个根下
+  **被停用**的技能不会上报 `invocation=false` 的影子候选，原生 rank 100/200 的候选就赢了 ——
+  面板说已停用、模型却能调用。
+- 在 `attachAgent` / `detachAgent` 里清掉快照 memo。DSH 的目录缓存按 `(cwd, scope, revision)` 分键，
+  新 agent 的 scope 是新的、缓存必 miss，清这一层就足以让它第一次读取看到正确的根。
+
+### 3. 文档与测试的准确性
+
+- 更正 provider 失败回退的语义说明：清空后返回空列表对「停用」是 **fail-open**（原生候选会赢），
+  选它是因为下一次成功读取能自愈，而不是「fail-closed」。
+- `skills.providerScopes` 的 mock 快照补上 `scope` 并带 `cwd` 调用，测的是生产形状而不是 legacy 分支。
+- 新增 `singleListedRoot`、`singleWorkspaceForCwds` 的用例；`host.workspaceDefaults` 增加
+  「agent 增删要清快照 memo」的接线断言。
+
+### 验证
+
+- `npm test`：**747 项（743 通过 / 4 项按平台跳过 / 0 失败）**；`npm run build`、`npm run check:names`、`npm run gate` 通过。
+- Host 冒烟（真实 DSH 运行时）仍通过，含项目级技能按 cwd 过滤与 `currentWorkspace` / `currentWorkspaceRoot` 断言。
+
 ## 0.6.6 — 技能作用域与默认工作区：跨工作区泄漏、猜错项目、静默漏扫
 
 > 三条都是「面板与模型看到的世界不一致」的问题：项目级技能泄漏到别的项目、多会话时默认目标

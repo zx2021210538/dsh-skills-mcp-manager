@@ -63,3 +63,16 @@ export function singleProjectRoot(dirs = []) {
   const roots = distinctProjectRoots(dirs)
   return roots.length === 1 ? roots[0] : ''
 }
+
+/**
+ * `singleProjectRoot` 的受限版本：根还必须出现在 `knownRoots` 里。
+ *
+ * 面板的「技能工作区」下拉只列注册表里的项目根（`spaces[].root`）。默认值如果落在集合外，
+ * 下拉会拿到一个没有对应 option 的 value：浏览器显示成空选中，内部却已经有值，「将写入 …」
+ * 还照样显示那个路径 —— 用户以为没选、点创建却写过去了。所以默认值必须和选项同一个域。
+ */
+export function singleListedRoot(dirs = [], knownRoots = []) {
+  const root = singleProjectRoot(dirs)
+  if (root === '') return ''
+  return (Array.isArray(knownRoots) ? knownRoots : []).some((known) => samePath(known, root)) ? root : ''
+}

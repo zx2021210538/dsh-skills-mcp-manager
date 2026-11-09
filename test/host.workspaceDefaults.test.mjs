@@ -30,7 +30,14 @@ test('currentWorkspace 不再取第一个 live agent，并且同时发布项目�
     '不能再把第一个 cwd 归一化后当默认工作区')
   assert.match(source, /singleWorkspaceForCwds\(cwds, spaces\)/,
     '默认工作区要用注册表路径匹配（支持子目录），且要求所有会话属于同一个')
-  assert.match(source, /const currentWorkspaceRoot = singleProjectRoot\(cwds\)/,
-    '技能默认值要独立发布项目根：同仓库多工作区时根仍可确定')
+  assert.match(source, /const currentWorkspaceRoot = singleListedRoot\(cwds, spaces\.map\(/,
+    '技能默认值要独立发布项目根，且必须落在「技能工作区」下拉的选项域内')
   assert.match(source, /currentWorkspace,\s*\n\s*currentWorkspaceRoot,/, '/runtime 必须同时返回两个字段')
+})
+
+test('agent 增删后快照 memo 立刻失效（新根下的停用技能不能晚一拍）', () => {
+  assert.match(source, /const attachAgent = \(agent\) => \{[\s\S]*?invalidateSnapshotCache\(\)/,
+    '新 agent 的 cwd 可能带来新项目根：快照 1s memo 不清，它第一次 list({cwd}) 看不到该根下被停用的技能')
+  assert.match(source, /const detachAgent = \(agent\) => \{[\s\S]*?invalidateSnapshotCache\(\)/,
+    'agent 移除后根集合变小，同样要让快照失效')
 })
