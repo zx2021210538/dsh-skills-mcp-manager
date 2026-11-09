@@ -115,7 +115,13 @@ agent cwd = /Users/joeson/Documents/tcl_jiguang/lib/foo   → 命中，挂载
 agent cwd = /Users/joeson/Documents/other                 → 不命中
 ```
 
-技能落盘那边仍按「最近的有 `.git` 的祖先」定位项目根（与 DSH 技能提供方一致）。
+技能落盘那边仍按「最近的有 `.git` 的祖先」定位项目根（与 DSH 技能提供方一致）。0.6.6 起
+**读**也按同一规则：治理 provider 的 `list({cwd})` 只保留本项目根下的项目级技能（停用候选仍在
+自己项目里以 `invocation=false` 出现），不再把别的项目的技能递给这个会话。
+
+面板的「当前工作区」默认值同样不猜：`/runtime.currentWorkspace` 只在所有 live 会话覆盖到同一个
+已注册工作区时给注册表路径（MCP 作用域按前缀匹配），`currentWorkspaceRoot` 只在所有 live 会话
+归一化到同一个项目根时给根（技能写盘按 `projectRootOf` 归一化）；其余情况都留空。
 
 ## 项目级挂载的真机结论（2026-10-01 实测）
 

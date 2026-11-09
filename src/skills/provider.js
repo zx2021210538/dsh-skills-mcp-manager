@@ -12,8 +12,19 @@
  * 而源文件一个字节都不用动。
  *
  * 技能仍然留在列表里（只是不可调用），这也让面板能把它显示成「已停用」而不是消失。
+ *
+ * ## 项目级技能按会话 cwd 过滤
+ *
+ * 快照是**跨工作区**的（面板要能管理所有工作区的技能），但模型目录不能跨：DSH 原生
+ * `dsh-skill-filesystem` 按本次会话 cwd 解析出的项目根给项目级技能上作用域。provider 挂在
+ * global 层，它的候选会并进**每个** agent 的目录 —— 不过滤就等于把 A 项目的技能指令递给 B
+ * 项目的模型（0.6.6 修的正是这个）。
+ *
+ * 过滤放在 `list()` 里每次现算，而不是快照里：同一个 provider 实例要给不同 cwd 的 agent
+ * 用，快照缓存也就不能带作用域。
  */
 import { loadGovernedSkillContent } from './governance.js'
+import { projectRootFor, samePath } from './roots.js'
 
 /** Provider 名字；`SkillSummary.provider` 会带上它，便于面板区分条目来源。 */
 export const PROVIDER_NAME = 'dsh-skills-mcp-manager'
@@ -26,14 +37,17 @@ export const PROVIDER_NAME = 'dsh-skills-mcp-manager'
  */
 export function createGovernanceProvider({ snapshot, log = null }) {
   /**
-   * 上一次成功列出的结果。
+   * 上一次成功读到的技能快照（**未按 cwd 过滤**）。
    *
-   * `snapshot()` 会读 `state.json`，而读取可能因瞬时占用（EBUSY/EACCES）失败。那时代理
-   * **不能**把异常抛给 DSH：`skills.list()` 是全局调用，抛错会让整个 profile 的技能目录
-   * 一起不可用（连不归本插件管的技能也读不出来）。退回上一次成功的结果，最坏只是策略状态
-   * 慢一拍，面板自己的路由会把真实错误显示出来。
+   * `snapshot()` 会读盘，瞬时占用（EBUSY/EACCES）可能失败。那时代理不能把异常抛给 DSH：
+   * `skills.list()` 是全局调用，抛错会让整个 profile 的技能目录一起不可用（连不归本插件管的
+   * 技能也读不出来）。退回上一次成功的结果，最坏只是策略状态慢一拍，面板自己的路由会把真实
+   * 错误显示出来。
+   *
+   * 缓存的是**过滤前**的列表：同一个 provider 实例（root 层的那份）要服务所有 agent，
+   * 把某个 cwd 的过滤结果缓存下来，失败回退时就会把 A 工作区的技能递给 B 工作区。
    */
-  let lastGood = []
+  let lastGoodSkills = []
   /**
    * 清掉"上一次结果"。
    *
@@ -41,19 +55,25 @@ export function createGovernanceProvider({ snapshot, log = null }) {
    * 会把停用前的策略当成答案返回，模型照样能调用 —— 失败方向变成 fail-open，与整个治理的目标
    * 相反。清空后失败时返回空列表（本插件独家来源暂时不可见，原生来源不受影响）。
    */
-  const resetCache = () => { lastGood = [] }
+  const resetCache = () => { lastGoodSkills = [] }
   return {
     name: PROVIDER_NAME,
     resetCache,
-    async list() {
+    /**
+     * @param options - DSH 的查找选项；`cwd` 是本次会话的工作目录，用来限定项目级技能。
+     */
+    async list(options = {}) {
       let skills = null
       try {
-        skills = (await snapshot()).skills
+        const snapshotSkills = (await snapshot())?.skills
+        skills = Array.isArray(snapshotSkills) ? snapshotSkills : null
       } catch (error) {
         if (typeof log === 'function') log(`技能快照读取失败，沿用上一次结果：${String(error?.message ?? error)}`)
-        return lastGood
       }
-      lastGood = skills.map((skill) => ({
+      if (skills === null) skills = lastGoodSkills
+      else lastGoodSkills = skills
+      const root = projectRootFor(options?.cwd)
+      return skills.filter((skill) => visibleFor(skill, root)).map((skill) => ({
         name: skill.name,
         description: skill.description === '' ? `技能：${skill.name}` : skill.description,
         invocation: {
@@ -66,7 +86,6 @@ export function createGovernanceProvider({ snapshot, log = null }) {
         rank: skill.rank,
         locator: skill.path,
       }))
-      return lastGood
     },
     async get(candidate) {
       const path = String(candidate?.locator ?? candidate?.path ?? '')
@@ -74,6 +93,23 @@ export function createGovernanceProvider({ snapshot, log = null }) {
       return { ...candidate, content }
     },
   }
+}
+
+/**
+ * 这条技能是否属于本次会话。
+ *
+ * - 用户级（`scope: 'global'`）与外部 Agent 目录：所有会话都能用；
+ * - 项目级（`scope` 是项目根）：只有本项目根的会话能用；
+ * - 没有 `scope` 的历史快照按用户级处理（向后兼容；生产快照由 `governance.js` 保证带 scope）。
+ *
+ * `cwd` 缺失时**不**放行项目级技能：DSH 原生 provider 在没有 cwd 时同样不读项目根，
+ * 跟它保持一致才不会出现「我们的目录里多出别的项目的技能」。
+ */
+function visibleFor(skill, root) {
+  const scope = typeof skill?.scope === 'string' ? skill.scope : ''
+  if (scope === '' || scope === 'global') return true
+  if (root === '') return false
+  return samePath(scope, root)
 }
 
 /**

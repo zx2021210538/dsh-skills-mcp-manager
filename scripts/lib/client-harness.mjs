@@ -150,7 +150,7 @@ export function textOf(node) {
 export function emptyDoc(overrides = {}) {
   return {
     servers: [], skills: [], rowOps: [], rowOpsReady: true,
-    profileServers: [], workspaces: [], currentWorkspace: '',
+    profileServers: [], workspaces: [], currentWorkspace: '', currentWorkspaceRoot: '',
     skillDirs: { userDsh: '/tmp/smp-home/skills', userAgents: '/tmp/smp-home/.agents/skills' },
     discoveryInfo: { at: '', roots: [], count: 0, error: '' },
     discoveredSkills: [],
@@ -247,6 +247,7 @@ export async function bootPanel(doc = emptyDoc(), options = {}) {
         skillDirs: doc.skillDirs ?? { userDsh: '/tmp/smp-home/skills', userAgents: '/tmp/smp-home/.agents/skills' },
         workspaces: doc.runtimeWorkspaces ?? doc.workspaces ?? [],
         currentWorkspace: doc.runtimeCurrentWorkspace ?? doc.currentWorkspace ?? '',
+        currentWorkspaceRoot: doc.runtimeCurrentWorkspaceRoot ?? doc.currentWorkspaceRoot ?? '',
         filter: doc.runtimeFilter ?? doc.filterState ?? {},
         probe: doc.runtimeProbe ?? doc.probeState ?? {},
         oauth: { ...(doc.oauthState ?? {}), servers: doc.oauthServers ?? {} },

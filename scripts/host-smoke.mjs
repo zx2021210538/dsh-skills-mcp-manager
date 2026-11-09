@@ -302,6 +302,20 @@ try {
   }
   const agentsService = { list: () => [liveAgent] }
   /**
+   * 技能治理 provider 的注册捕获。
+   *
+   * 真实的 `skills` 服务会调用工厂并把 provider 挂到注册 ctx 所在的层上；这里只需要工厂
+   * 产物来验证「项目级技能按会话 cwd 过滤」这条行为，不需要整套分层合并。
+   */
+  const governanceProviders = []
+  const skillsService = {
+    registerProvider(create) {
+      const control = { signal: new AbortController().signal, invalidate: noop }
+      governanceProviders.push(create(control))
+      return noop
+    },
+  }
+  /**
    * The tool registry, scoped like the real one.
    *
    * `tools.register()` files a definition under the **registering context's scope**, and
@@ -396,7 +410,19 @@ try {
   const ctx = {
     logger: { info: noop, warn: noop, error: (...args) => problems.push('host logger.error: ' + args.map(String).join(' ')) },
     get: (name) => {
-      if (name === 'workspaceRegistry') return { list: () => [] }
+      if (name === 'workspaceRegistry') {
+        /**
+         * 两个工作区：`/p/smoke` 是 live agent 的 cwd（MCP 项目级挂载用它），`stage` 是本次
+         * 冒烟自己建的 Git 仓库（项目级技能写在这里）。它们让 `/runtime` 的
+         * `currentWorkspace` / `currentWorkspaceRoot` 与 provider 过滤都能被真实驱动。
+         */
+        return {
+          list: () => [
+            { id: 'smoke-ws', title: 'smoke', path: '/p/smoke' },
+            { id: 'smoke-stage', title: 'stage', path: stage },
+          ],
+        }
+      }
       if (name === 'tools') return toolsService
       if (name === 'mcpResources') return mcpResourcesService
       if (name === 'agents') return agentsService
@@ -418,6 +444,7 @@ try {
       // `ctx.get('profileContext')`, and the route handlers are handed *this* object.
       get: (name) => ctx.get(name),
       connection: { requestRejection: () => undefined },
+      skills: skillsService,
       logger: { warn: noop, info: noop, error: noop },
       effect: (fn) => { fn(); return noop },
       /**
@@ -614,6 +641,27 @@ try {
   const projFile = join(stage, '.agents', 'skills', 'smoke-project-skill', 'SKILL.md')
   note(projectCreated.json?.ok === true, `项目级创建成功（HTTP ${projectCreated.status} / ${projectCreated.json?.reason ?? ''}）`)
   note(existsSync(projFile), '项目级技能落盘到 <project>/.agents/skills/<name>/SKILL.md')
+
+  /**
+   * 项目级技能的**模型侧作用域**。
+   *
+   * 治理快照是跨工作区的（面板要管理所有工作区），provider 却挂在 global 层、候选会并进
+   * 每个 agent 的目录。这里用真实落盘的技能验证 `list({cwd})` 的过滤：本项目能看到，
+   * 别的项目看不到，没有 cwd 时与 DSH 原生 provider 一样不列项目级技能。
+   */
+  const rootProvider = governanceProviders[0]
+  note(rootProvider !== undefined, '技能治理 provider 注册到了 root（skills 服务存在时）')
+  if (rootProvider !== undefined) {
+    const inStage = await rootProvider.list({ cwd: stage })
+    note(inStage.some((candidate) => candidate.name === 'smoke-project-skill'),
+      '项目级技能在项目自己的 cwd 下对模型可见')
+    const inOther = await rootProvider.list({ cwd: '/p/smoke' })
+    note(!inOther.some((candidate) => candidate.name === 'smoke-project-skill'),
+      '别的项目 cwd 看不到它（项目级技能不再跨工作区泄漏）')
+    const withoutCwd = await rootProvider.list()
+    note(!withoutCwd.some((candidate) => candidate.name === 'smoke-project-skill'),
+      '没有 cwd 时不列项目级技能（与 DSH 原生 provider 一致）')
+  }
 
   // ── 3. MCP rows: file CRUD, and the answer already contains the new row ──────────────
   //
@@ -951,6 +999,20 @@ try {
   note(finalSkills.every((skill) => skill.body === undefined), '列表不夹带正文（体积不会随技能数膨胀）')
   const discovery = (await readRuntime()).discovery
   note(typeof discovery?.at === 'string' && discovery.at !== '', 'discoveryInfo 记录了扫描时间（诊断通道可用）')
+
+  /**
+   * `/runtime` 的默认工作区语义。
+   *
+   * 注册表里有两个工作区，但只有 `/p/smoke` 是 live agent 的 cwd：`currentWorkspace` 是它的
+   * 注册表路径（MCP 作用域按路径前缀匹配），`currentWorkspaceRoot` 是它的项目根（技能写盘
+   * 按 `projectRootOf` 归一化）。旧实现取「第一个 agent 的 cwd 再归一化」，既有排序问题，
+   * 又让 MCP 作用域拿到 Git 根而不是工作区路径。
+   */
+  const workspaceRuntime = await readRuntime()
+  note(workspaceRuntime.currentWorkspace === '/p/smoke',
+    `currentWorkspace 是 live 会话的注册表路径（收到 ${JSON.stringify(workspaceRuntime.currentWorkspace)}）`)
+  note(workspaceRuntime.currentWorkspaceRoot === resolve('/p/smoke'),
+    `currentWorkspaceRoot 是它的项目根（收到 ${JSON.stringify(workspaceRuntime.currentWorkspaceRoot)}）`)
 } catch (error) {
   note(false, '冒烟脚本自身出错：' + (error?.stack ?? error?.message ?? error))
 } finally {

@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.6.6 — 技能作用域与默认工作区：跨工作区泄漏、猜错项目、静默漏扫
+
+> 三条都是「面板与模型看到的世界不一致」的问题：项目级技能泄漏到别的项目、多会话时默认目标
+> 指错项目、工作区多了以后一截工作区从面板消失。升级后需重启 DSH 让新 Host 生效。
+
+### 1. 项目级技能在模型侧按会话 cwd 过滤（不再跨工作区泄漏）
+
+- 背景：治理 provider 挂在 global 层，快照又是跨工作区的（面板要管理所有工作区）。DSH 会把
+  global 层的候选并进**每个** agent 的目录，于是 A 工作区的项目级技能也出现在 B 工作区会话的
+  模型目录里 —— 模型可能照着别的项目的指令行事。
+- 现在 `provider.list()` 用 DSH 传进来的 `cwd` 解析项目根（与 `dsh-skill-filesystem` 的
+  `findProjectRoot()` 同一规则：最近的包含 `.git` 的祖先，没有则 cwd），只列本项目根下的项目级
+  技能；用户级（`~/.dsh`、`~/.agents`）与外部 Agent 目录仍然对所有会话可见。
+- 没有 `cwd` 时不列项目级技能 —— 与 DSH 原生 provider 在没有 cwd 时不读项目根的行为一致。
+- 停用语义不变：被停用的项目级技能仍在自己项目里以 `invocation: false` 列出（面板要显示
+  「已停用」），只是不再出现在别的工作区。
+- 快照失败回退改为持有**未过滤**快照、按调用方 cwd 再过滤：同一个 provider 实例要服务多个
+  agent，缓存过滤后的结果会把上一个工作区的技能端给另一个工作区。
+
+### 2. 默认工作区不再「取第一个会话」
+
+- `/runtime` 新增 `currentWorkspaceRoot`；`currentWorkspace` 不再是「第一个 live agent 的 cwd
+  归一化」：所有 live 会话覆盖到同一个已注册工作区时给它的**注册表路径**，所有 live 会话归一化
+  到同一个项目根时把该根给技能默认值。多个工作区同时活跃时两个字段都留空。
+- 默认目标留空后：MCP 添加对话框回到「全局」，技能对话框回到「请选择工作区」，由用户自己选 ——
+  比替用户猜一个项目更安全（猜错的后果是服务器挂到了别人 scope、技能写进了别的工作区）。
+- MCP 的默认作用域改用注册表路径（按路径前缀匹配），不再误用 Git 根把作用域放大到整个仓库；
+  技能的默认目标用项目根（与写盘时的 `projectRootOf` 归一化一致）。
+
+### 3. 扫描不再静默截断 12 个项目根
+
+- 原来 `refreshGovernance` / `refreshDiscovered` 只扫前 12 个项目根（按 agent 顺序、再按注册表
+  顺序）。超过 12 个根以后，那些工作区的技能**从面板整段消失**：不能预览、不能改名、不能启停，
+  也没有任何提示；而模型侧的 provider 用的仍是完整列表 —— 面板与模型各说各话。
+- 现在两处都接收完整的项目根列表（去重与归一化收敛到 `src/skills/roots.js`）。代价只是每个
+  不存在的根一次 ENOENT；注册表里的根数量由用户决定，漏扫的代价比多扫两个目录贵得多。
+
+### 验证
+
+- `npm test`：**744 项（740 通过 / 4 项按平台跳过 / 0 失败）**；`npm run build`、`npm run check:names` 通过。
+- Host 冒烟（真实 DSH 运行时）新增：项目级技能只在自己的 cwd 下对模型可见、别的项目看不到、
+  没有 cwd 时不列；`/runtime` 的 `currentWorkspace` 是注册表路径、`currentWorkspaceRoot` 是项目根。
+- 新增回归测试：`skills.roots.test.mjs`、`skills.providerCwdScope.test.mjs`、
+  `project.workspaceForCwd.test.mjs`、`client.workspaceDefaults.test.mjs`、
+  `host.workspaceDefaults.test.mjs`。
+
 ## 0.6.5 — Host 错误码化：六种语言的错误/结果消息
 
 > 0.6.4 的 i18n 只覆盖客户端静态文案；Host 生成的错误/结果仍是中文。这一版把 Host 响应面

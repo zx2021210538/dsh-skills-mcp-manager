@@ -30,6 +30,7 @@ import { scanImportSource } from './import/scan.js'
 import { registerImportRoute } from './import/route.js'
 import { beat } from './diagnostics/heartbeat.js'
 import { agentsHome, projectRootOf } from './skills/reconcile.js'
+import { distinctProjectRoots, singleProjectRoot } from './skills/roots.js'
 import { bodyOf, discoverSkills } from './skills/discover.js'
 import { createSkill, deleteSkill, renameSkill, updateSkill, writableRoots } from './skills/write.js'
 import { registerSkillRoute } from './skills/route.js'
@@ -46,7 +47,7 @@ import { registerSkillImportRoute } from './skills/import-route.js'
 import { installCatalogSkill, listClawHub, searchClawHub, searchSkillsSh } from './skills/catalog.js'
 import { registerSkillCatalogRoute } from './skills/catalog-route.js'
 import { checkForUpdate } from './update.js'
-import { serverMountConfig, setMountClient, workingDirectoryOf } from './project/mount.js'
+import { serverMountConfig, setMountClient, workingDirectoryOf, workspaceForCwd } from './project/mount.js'
 import { GLOBAL_SCOPE, projectServersFor, serverRows, serverSetKey } from './mcp/serverRows.js'
 import { readMcpRowsFromPatch } from './patch/readRows.js'
 import { connectionDraftOf } from './mcp/connection.js'
@@ -1387,17 +1388,11 @@ export function apply(ctx, config) {
 
   /** 当前所有项目根（活着的 agent 的 cwd + 已登记工作区）：磁盘扫描与治理扫描共用一份。 */
   const governanceProjectRoots = () => {
-    const roots = []
-    const add = (dir) => {
-      if (typeof dir !== 'string' || dir === '') return
-      const root = projectRootOf(dir)
-      if (!roots.includes(root)) roots.push(root)
-    }
-    for (const entry of agents.values()) add(entry.cwd)
-    for (const workspace of configuredWorkspaces(ctx)) {
-      add(typeof workspace === 'string' ? workspace : workspace?.path)
-    }
-    return roots
+    const dirs = []
+    for (const entry of agents.values()) dirs.push(entry.cwd)
+    for (const workspace of configuredWorkspaces(ctx)) dirs.push(workspace.path)
+    // 去重与归一化只有一份规则：同一个仓库的多个工作区折叠成一个根，而不是按注册表条数重复扫。
+    return distinctProjectRoots(dirs)
   }
 
   /**
@@ -1588,7 +1583,15 @@ export function apply(ctx, config) {
 
   /** 重新计算治理视图；失败时保留可读的错误而不是把整页打空。 */
   const refreshGovernance = async (projectRoots) => {
-    const roots = Array.isArray(projectRoots) ? projectRoots.slice(0, 12) : []
+    /**
+     * 不截断项目根。
+     *
+     * 原来这里只扫前 12 个项目根：工作区（准确说，是**不同的 Git 根**）超过 12 个时，后面的根
+     * 会被静默丢掉 —— 面板里那些工作区的技能整段不存在，不能预览、不能启停，而模型侧仍然
+     * 看得到（provider 用的是完整列表）。漏扫的代价比多扫两个目录贵得多：注册表里的根数量由
+     * 用户决定，不存在的根只是一次 ENOENT。
+     */
+    const roots = Array.isArray(projectRoots) ? [...projectRoots] : []
     const dshHome = resolveDshHome()
     try {
       const snapshot = await governedSkills({ projectRoots: roots, dshHome, agentsHome: agentsHome() })
@@ -1605,7 +1608,9 @@ export function apply(ctx, config) {
   }
 
   const refreshDiscovered = async (projectRoots) => {
-    const roots = Array.isArray(projectRoots) ? projectRoots.slice(0, 12) : []
+    // 与 `refreshGovernance` 同一份完整根列表：两处截断不一致时，面板的列表与「模型可见」
+    // 的口径会各自少一截，而且谁也说不清少的是哪一段。
+    const roots = Array.isArray(projectRoots) ? [...projectRoots] : []
     try {
       discoveredSkills = await discoverSkills({
         projectRoots: roots,
@@ -1760,6 +1765,29 @@ export function apply(ctx, config) {
       return out
     })()
     const cwds = [...agents.values()].map((entry) => entry.cwd).filter((cwd) => typeof cwd === 'string' && cwd !== '')
+    /**
+     * 面板默认目标的「当前工作区」。
+     *
+     * 不能取第一个 live agent：`agents` 是创建顺序，不是用户正在看的会话。多个会话时那样
+     * 猜出来的默认值会把「添加 MCP / 添加技能」指到另一个项目上（服务器挂了却不生效、
+     * 技能写进了别的工作区），而且完全没有提示。
+     *
+     * 现在只在**能确定**时给值：
+     *   · `currentWorkspace` —— 所有 live cwd 覆盖到同一个已注册工作区时，用它的**注册表
+     *     路径**（MCP 作用域按路径前缀匹配，必须用路径而不是 Git 根）；
+     *   · `currentWorkspaceRoot` —— 所有 live cwd 归一化到同一个项目根时，用那个根（技能
+     *     按 `projectRootOf` 落盘，对话框「将写入 …」要展示同一个根）。
+     *
+     * 其余情况（多个工作区同时活跃、会话不属于任何注册工作区）一律留空：让用户自己选，
+     * 好过替用户猜。
+     */
+    const liveWorkspaces = []
+    for (const cwd of cwds) {
+      const path = workspaceForCwd(cwd, spaces)
+      if (path !== '' && !liveWorkspaces.includes(path)) liveWorkspaces.push(path)
+    }
+    const currentWorkspace = liveWorkspaces.length === 1 ? liveWorkspaces[0] : ''
+    const currentWorkspaceRoot = singleProjectRoot(cwds)
     const skillDirs = {
       userDsh: join(resolveDshHome(), 'skills'),
       userAgents: join(agentsHome(), 'skills'),
@@ -1796,7 +1824,8 @@ export function apply(ctx, config) {
       skillGovernance,
       skillDirs,
       workspaces: spaces,
-      currentWorkspace: cwds.length > 0 ? (projectRootOf(cwds[0]) || cwds[0]) : '',
+      currentWorkspace,
+      currentWorkspaceRoot,
       filter,
       probe: probeState,
       oauth: {

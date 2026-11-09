@@ -127,10 +127,30 @@ export function serverMountConfig(server) {
     return mountConfig
   }
 }
-/** The agent's working directory, tolerating the Session shapes in play. */
+/**
+ * The agent's working directory, tolerating the Session shapes in play. */
 export function workingDirectoryOf(agent) {
   const session = agent?.session
   return session?.cwd ?? session?.header?.cwd ?? agent?.cwd ?? agent?.options?.cwd ?? null
+}
+/**
+ * The most specific registered workspace that contains a working directory.
+ *
+ * 面板给「项目级」默认值时只应预选**能确定**的工作区：一个会话可能落在工作区根，也可能落在
+ * 它的子目录；同一工作区里的多个会话仍算同一个工作区。返回 `''` 表示「这个 cwd 不属于任何
+ * 已注册工作区」，调用方据此不给默认值，而不是拿别的工作区顶上。
+ *
+ * 嵌套工作区取最长前缀（最贴近 cwd 的那个），与 MCP 项目级挂载的判定方向一致。
+ */
+export function workspaceForCwd(cwd, workspaces = []) {
+  if (typeof cwd !== 'string' || cwd === '') return ''
+  let best = ''
+  for (const workspace of Array.isArray(workspaces) ? workspaces : []) {
+    const path = typeof workspace?.path === 'string' ? workspace.path : ''
+    if (path === '' || !scopeCovers(path, cwd)) continue
+    if (path.length > best.length) best = path
+  }
+  return best
 }
 /**
  * Project-scoped servers that apply to a working directory.

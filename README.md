@@ -93,7 +93,7 @@ dsh plugin --profile web add dsh-skills-mcp-manager
 ### 桌面端：设置 → 插件 → 安装本地包
 
 从 [Releases](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases) 下载
-`dsh-skills-mcp-manager-0.6.5.tgz`，在 **设置 → 插件 → 安装本地包** 里选中它，然后**重启 DSH**。
+`dsh-skills-mcp-manager-0.6.6.tgz`，在 **设置 → 插件 → 安装本地包** 里选中它，然后**重启 DSH**。
 
 > `desktop` profile 由桌面应用独占，宿主 CLI 的 `dsh plugin --profile desktop` 会被直接拒绝。
 
@@ -102,11 +102,11 @@ dsh plugin --profile web add dsh-skills-mcp-manager
 ```bash
 # 装 GitHub Release 里预构建的包：
 dsh plugin --profile web add \
-  https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.5/dsh-skills-mcp-manager-0.6.5.tgz
+  https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.6/dsh-skills-mcp-manager-0.6.6.tgz
 
 # 或者用本机打出来的 tarball：
 npm pack
-dsh plugin --profile web add ./dsh-skills-mcp-manager-0.6.5.tgz
+dsh plugin --profile web add ./dsh-skills-mcp-manager-0.6.6.tgz
 ```
 
 **重启 DSH**，再刷新页面：**设置 → Skills & MCP**。
@@ -202,6 +202,8 @@ npm run deploy     # 拷贝进 profile；部署前先跑加载冒烟，失败则
 
 - 列表 = **磁盘扫描结果**：`$DSH_HOME/skills`、`~/.agents/skills`、以及各项目的 `.agents/skills` / `.dsh/skills`。磁盘文件是**唯一真源**，`config.skills[]` / 对账镜像已删除（旧条目会在升级时一次性写成文件）
 - 项目级技能的项目根与 DSH 的 `dsh-skill-filesystem` 完全一致：取**最近的包含 `.git` 的祖先目录**，没有则用该工作区路径本身。所以工作区嵌在别的 Git 仓库里时，项目级技能写在**仓库根**的 `.dsh/skills` / `.agents/skills`，对话框「将写入 …」显示的就是这个实际落点；想让每个嵌套工作区各有独立技能根，请让工作区自己成为 Git 仓库（`git init`）
+- 项目级技能**只对属于该项目的会话可见**（模型侧按会话 cwd 解析项目根后过滤，与 DSH 原生 provider 一致）；面板仍然跨工作区展示，方便统一管理
+- 「当前工作区」的默认值来自 live 会话：只有一个能确定的工作区时预选它，多个工作区同时活跃时留空（MCP 回到「全局」、技能回到「请选择工作区」），不猜第一个会话
 - 「添加技能」写入 `<根>/<名字>/SKILL.md`：区域选全局或项目，**名字同时是目录名**
 - 预览/编辑按需通过 `GET /<name>/skill?path=` 读取正文（只允许读扫描到的文件；正文不进 profile patch）
 - 重命名会**同时移动目录并改写 frontmatter 里的 `name`**（否则面板和文件夹会对不上）
