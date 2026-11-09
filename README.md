@@ -201,6 +201,7 @@ npm run deploy     # 拷贝进 profile；部署前先跑加载冒烟，失败则
 ### 技能
 
 - 列表 = **磁盘扫描结果**：`$DSH_HOME/skills`、`~/.agents/skills`、以及各项目的 `.agents/skills` / `.dsh/skills`。磁盘文件是**唯一真源**，`config.skills[]` / 对账镜像已删除（旧条目会在升级时一次性写成文件）
+- 项目级技能的项目根与 DSH 的 `dsh-skill-filesystem` 完全一致：取**最近的包含 `.git` 的祖先目录**，没有则用该工作区路径本身。所以工作区嵌在别的 Git 仓库里时，项目级技能写在**仓库根**的 `.dsh/skills` / `.agents/skills`，对话框「将写入 …」显示的就是这个实际落点；想让每个嵌套工作区各有独立技能根，请让工作区自己成为 Git 仓库（`git init`）
 - 「添加技能」写入 `<根>/<名字>/SKILL.md`：区域选全局或项目，**名字同时是目录名**
 - 预览/编辑按需通过 `GET /<name>/skill?path=` 读取正文（只允许读扫描到的文件；正文不进 profile patch）
 - 重命名会**同时移动目录并改写 frontmatter 里的 `name`**（否则面板和文件夹会对不上）

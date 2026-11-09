@@ -40,6 +40,26 @@ test('scopeRoot：id 选根 —— agents 走 DSH_AGENTS_HOME，项目级两个�
   }
 })
 
+test('scopeRoot：工作区嵌在 Git 仓库里时仍落到仓库根（与 DSH 的 skill provider 一致）', () => {
+  /**
+   * 这条用例锁的是**与宿主对齐**，不是「工作区直觉」。
+   *
+   * DSH 0.2.2-rc.1（当前 npm latest）的 `@deepseek-ai/dsh-skill-filesystem` 以「最近的包含
+   * `.git` 的祖先目录」为项目根（README「根目录与优先级」，源码 `findProjectRoot()`），
+   * 不存在时退回 cwd。模型侧扫描的就是那个根下的 `.dsh/skills` / `.agents/skills`。
+   *
+   * 面板若自作主张改用工作区路径，就会把技能写到 DSH 不扫描、也不监听变更的目录：面板里
+   * 看得到、模型侧却拿原生 provider 读不到，而且外部编辑不会触发目录刷新。0.5.38 / 0.5.41
+   * 修掉的正是这类「写盘与扫描各用一个根」的分叉。
+   */
+  const checkout = mkdtempSync(join(tmpdir(), 'smp-git-root-'))
+  const workspace = join(checkout, 'data', 'workspaces', 'bbbbbbb')
+  mkdirSync(join(checkout, '.git'), { recursive: true })
+  mkdirSync(workspace, { recursive: true })
+  assert.equal(scopeRoot(workspace, 'dsh'), join(checkout, '.dsh', 'skills'))
+  assert.equal(scopeRoot(workspace, 'agents'), join(checkout, '.agents', 'skills'))
+})
+
 
 /*
  * `reconcileSkills` 在 0.5.32 被删除：它从未被调用，却会按状态文件里的**任意 dirname**
