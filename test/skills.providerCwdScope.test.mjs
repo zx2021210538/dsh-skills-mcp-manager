@@ -24,13 +24,13 @@ function fixture() {
   mkdirSync(join(repoB, '.git'), { recursive: true })
   const skills = [
     // 用户级：所有会话都能用
-    { name: 'global-skill', scope: 'global', source: 'user-dsh', enabled: true, rank: 399, description: '', path: join(home, '.dsh', 'skills', 'global-skill', 'SKILL.md') },
+    { name: 'global-skill', scope: 'global', source: 'user-dsh', native: true, enabled: true, rank: 399, description: '', path: join(home, '.dsh', 'skills', 'global-skill', 'SKILL.md') },
     // A 项目：只有 A 的会话能用
-    { name: 'alpha', scope: repoA, source: 'project-dsh', enabled: true, rank: 99, description: '', path: join(repoA, '.dsh', 'skills', 'alpha', 'SKILL.md') },
+    { name: 'alpha', scope: repoA, source: 'project-dsh', native: true, enabled: true, rank: 99, description: '', path: join(repoA, '.dsh', 'skills', 'alpha', 'SKILL.md') },
     // A 项目里被停用的那个：在 A 里仍要出现（invocation=false），在 B 里不出现
-    { name: 'alpha-off', scope: repoA, source: 'project-agents', enabled: false, rank: 199, description: '', path: join(repoA, '.agents', 'skills', 'alpha-off', 'SKILL.md') },
+    { name: 'alpha-off', scope: repoA, source: 'project-agents', native: true, enabled: false, rank: 199, description: '', path: join(repoA, '.agents', 'skills', 'alpha-off', 'SKILL.md') },
     // B 项目：只有 B 的会话能用
-    { name: 'beta', scope: repoB, source: 'project-dsh', enabled: true, rank: 99, description: '', path: join(repoB, '.dsh', 'skills', 'beta', 'SKILL.md') },
+    { name: 'beta', scope: repoB, source: 'project-dsh', native: true, enabled: true, rank: 99, description: '', path: join(repoB, '.dsh', 'skills', 'beta', 'SKILL.md') },
     // 历史快照/外部来源没有 scope：按用户级处理（生产快照由 governance.js 保证带 scope）
     { name: 'legacy', source: 'claude', enabled: true, rank: 450, description: '', path: join(home, '.claude', 'skills', 'legacy', 'SKILL.md') },
   ]

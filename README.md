@@ -93,7 +93,7 @@ dsh plugin --profile web add dsh-skills-mcp-manager
 ### 桌面端：设置 → 插件 → 安装本地包
 
 从 [Releases](https://github.com/zx2021210538/dsh-skills-mcp-manager/releases) 下载
-`dsh-skills-mcp-manager-0.6.7.tgz`，在 **设置 → 插件 → 安装本地包** 里选中它，然后**重启 DSH**。
+`dsh-skills-mcp-manager-0.6.8.tgz`，在 **设置 → 插件 → 安装本地包** 里选中它，然后**重启 DSH**。
 
 > `desktop` profile 由桌面应用独占，宿主 CLI 的 `dsh plugin --profile desktop` 会被直接拒绝。
 
@@ -102,11 +102,11 @@ dsh plugin --profile web add dsh-skills-mcp-manager
 ```bash
 # 装 GitHub Release 里预构建的包：
 dsh plugin --profile web add \
-  https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.7/dsh-skills-mcp-manager-0.6.7.tgz
+  https://github.com/zx2021210538/dsh-skills-mcp-manager/releases/download/v0.6.8/dsh-skills-mcp-manager-0.6.8.tgz
 
 # 或者用本机打出来的 tarball：
 npm pack
-dsh plugin --profile web add ./dsh-skills-mcp-manager-0.6.7.tgz
+dsh plugin --profile web add ./dsh-skills-mcp-manager-0.6.8.tgz
 ```
 
 **重启 DSH**，再刷新页面：**设置 → Skills & MCP**。
@@ -204,6 +204,9 @@ npm run deploy     # 拷贝进 profile；部署前先跑加载冒烟，失败则
 - 项目级技能的项目根与 DSH 的 `dsh-skill-filesystem` 完全一致：取**最近的包含 `.git` 的祖先目录**，没有则用该工作区路径本身。所以工作区嵌在别的 Git 仓库里时，项目级技能写在**仓库根**的 `.dsh/skills` / `.agents/skills`，对话框「将写入 …」显示的就是这个实际落点；想让每个嵌套工作区各有独立技能根，请让工作区自己成为 Git 仓库（`git init`）
 - 项目级技能**只对属于该项目的会话可见**（模型侧按会话 cwd 解析项目根后过滤，与 DSH 原生 provider 一致）；面板仍然跨工作区展示，方便统一管理
 - 「当前工作区」的默认值来自 live 会话：只有一个能确定的工作区时预选它，多个工作区同时活跃时留空（MCP 回到「全局」、技能回到「请选择工作区」），不猜第一个会话
+- **同一份技能只算一个**：`~/.agents/skills` 是 `~/.claude/skills` 的 Junction / symlink 时，两个来源指向同一批文件，启停取并集（任一来源启用就可用）；停用某个重复来源不会再连带屏蔽另一份
+- **停用的外部来源不再压掉同名技能**：只有 DSH 原生根（`~/.dsh/skills` 等）停用时才上报「影子候选」去盖住原生 provider；同名但文件不同的情况下，这条影子仍可能赢（宿主按 rank 去重），此时卡片会标注「被「X」覆盖」，面板的「模型可见」数也按宿主口径计算
+- 面板的「模型可见 N / 共 M」由 Host 现算（与它交给模型的候选同一份规则），**N 就是按宿主同层去重规则算出的、模型实际能调用的技能数**；「共 M」按真实技能数计（同一文件经两个来源出现只算一个）
 - 「添加技能」写入 `<根>/<名字>/SKILL.md`：区域选全局或项目，**名字同时是目录名**
 - 预览/编辑按需通过 `GET /<name>/skill?path=` 读取正文（只允许读扫描到的文件；正文不进 profile patch）
 - 重命名会**同时移动目录并改写 frontmatter 里的 `name`**（否则面板和文件夹会对不上）
@@ -281,6 +284,8 @@ cordis.patch.yml                                   声明插件行（本包自�
 ## 已知边界
 
 - 面板列出**磁盘上**的技能（其它工具放进去的也在），但只对其中「本插件能定位到的根」执行写操作
+- **技能目录的「条目级」软链/Junction 扫不到**：扫描只认普通目录与普通文件，所以 `~/.claude/skills/foo` 若是指向别处的 Junction，面板里不会有它（模型侧由原生 provider 处理）。**根级**别名（`~/.agents/skills` 整个指向 `~/.claude/skills`）是支持的：同一份技能只算一个，启停取并集（0.6.8）
+- **把外部目录配进官方 `customSkillDirs` 会绕开面板的启停**：那类目录由 DSH 原生 provider 以 rank 300 列出（runtime 技能 250），本插件只建模了 100/200/400/500 四个原生根，压不住这些候选
 - **项目级 MCP 对 subagent 不可见**：subagent 只继承 root 作用域；需要所有 agent 都用就配成全局
 - **工具过滤对「已注册」的工具无能为力**：插件只能在注册那一刻放行或拦下，无法注销别的插件
   已经注册的工具。所以刚开启的档位要等该服务器重新注册工具才完全见效——把该卡片「停用」再

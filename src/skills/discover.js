@@ -15,8 +15,26 @@
  * (`<name>.md`), matching what the DSH provider accepts.
  */
 import { readdir, readFile, stat } from 'node:fs/promises'
+import { realpathSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
+
+/**
+ * 一条技能文件的**真实路径**（解析掉 Junction / symlink / 路径别名）。
+ *
+ * 用途只有一个：同一个真实文件经两个来源出现时（典型是 `~/.agents/skills` 是
+ * `~/.claude/skills` 的 Windows Junction），模型侧只能算**一个**技能 —— 否则「停用一个
+ * 重复来源」会按名字把另一份启用的一起压掉（issue #4）。
+ *
+ * 读不到真实路径时退回原始路径：宁可当成两个技能（老行为），也不能让扫描失败。
+ */
+function safeRealPath(path) {
+  try {
+    return realpathSync(path)
+  } catch {
+    return path
+  }
+}
 
 /** The scan roots for one or more project roots plus the user-level roots. */
 export function skillRootsFor({ projectRoots = [], dshHome = '', agentsHome = '' }) {
@@ -74,13 +92,15 @@ export function bodyOf(markdown) {
 }
 
 /** Read one directory bundle or flat markdown file into a skill record. */
-async function readSkillFile(file, name, base) {
+async function readSkillFile(file, name, base, realPath = '') {
   const text = await readFile(file, 'utf8')
   const meta = parseFrontmatter(text)
   return {
     name: typeof meta.name === 'string' && meta.name !== '' ? meta.name : name,
     description: typeof meta.description === 'string' ? meta.description : '',
     path: file,
+    // 只在「根是别名」时才带，且与自身不同才留：普通行省掉这份重复的长字符串。
+    realPath: realPath !== '' && realPath !== file ? realPath : '',
     source: base.source,
     scope: base.scope,
   }
@@ -94,19 +114,32 @@ export async function scanSkillRoot(root) {
   } catch {
     return []
   }
+  /**
+   * 真实根**只解析一次**。
+   *
+   * 条目级的 Junction / symlink 不会走到这里（`readdir` 对它们报 `isSymbolicLink`，
+   * 既不是 `isDirectory` 也不是 `isFile`，与 DSH 原生 provider 以外的历史行为一致），
+   * 所以「真实根 + 条目名」与逐文件 `realpath` 对能被扫到的行等价；而逐文件解析是**同步**
+   * 调用，100 个技能每次扫描多阻塞约 20ms，被 1 秒 TTL 的快照放大成可感知的卡顿。
+   */
+  const realRoot = safeRealPath(root.path)
+  const aliased = realRoot !== '' && realRoot !== root.path
   const found = []
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue
     if (entry.isDirectory()) {
       const file = join(root.path, entry.name, 'SKILL.md')
+      const realPath = aliased ? join(realRoot, entry.name, 'SKILL.md') : ''
       try {
-        found.push(await readSkillFile(file, entry.name, root))
+        found.push(await readSkillFile(file, entry.name, root, realPath))
       } catch {
         // a directory without SKILL.md is not a skill
       }
     } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      const file = join(root.path, entry.name)
+      const realPath = aliased ? join(realRoot, entry.name) : ''
       try {
-        found.push(await readSkillFile(join(root.path, entry.name), entry.name.replace(/\.md$/, ''), root))
+        found.push(await readSkillFile(file, entry.name.replace(/\.md$/, ''), root, realPath))
       } catch {
         // unreadable file: skip
       }
@@ -124,7 +157,14 @@ export async function discoverSkills(options) {
       const key = `${skill.scope}\u0000${skill.name}`
       if (seen.has(key)) continue
       seen.add(key)
-      out.push(skill)
+      /**
+       * 这份列表只给面板的「磁盘上有哪些技能」用（`/runtime.skills`），客户端只读
+       * `name` / `scope` / `path`。`realPath` 只在治理侧（`governedSkills`）有意义，
+       * 不跟着进 `/runtime`：否则每个技能都会多带一份路径。
+       */
+      const published = { ...skill }
+      delete published.realPath
+      out.push(published)
     }
   }
   return out.sort((a, b) => a.name.localeCompare(b.name))

@@ -88,6 +88,7 @@ const disabledSnapshot = () => ({
       description: '架构图',
       source: 'project-agents',
       scope: '/workspace',
+      native: true,
       rank: policyRank('project-agents'),
       enabled: false,
       path: '/workspace/.agents/skills/archify/SKILL.md',

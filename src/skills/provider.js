@@ -22,8 +22,20 @@
  *
  * 过滤放在 `list()` 里每次现算，而不是快照里：同一个 provider 实例要给不同 cwd 的 agent
  * 用，快照缓存也就不能带作用域。
+ *
+ * ## 同名与目录别名（issue #4）
+ *
+ * 宿主按**技能名**在「同一层」去重，先比 rank 再比上报顺序，**不看 invocation**。所以一条
+ * 停用的影子候选可以压掉另一个来源里同名的启用候选 —— 只要它的 rank 更小。两种触发方式：
+ *
+ *   · 同一真实文件经 Junction / symlink 出现在两个来源（`~/.agents/skills` → `~/.claude/skills`）；
+ *   · 不同来源里恰好有同名技能。
+ *
+ * 对策收敛在 `skills/modelView.js`：同一真实文件折成一条（启停取并集），外部来源停用不再
+ * 上报影子候选（原生根必须上报，否则停用压不住原生 provider）。
  */
 import { loadGovernedSkillContent } from './governance.js'
+import { modelViews } from './modelView.js'
 import { projectRootFor, samePath } from './roots.js'
 
 /** Provider 名字；`SkillSummary.provider` 会带上它，便于面板区分条目来源。 */
@@ -76,19 +88,28 @@ export function createGovernanceProvider({ snapshot, log = null }) {
       if (skills === null) skills = lastGoodSkills
       else lastGoodSkills = skills
       const root = projectRootFor(options?.cwd)
-      return skills.filter((skill) => visibleFor(skill, root)).map((skill) => ({
-        name: skill.name,
-        description: skill.description === '' ? `技能：${skill.name}` : skill.description,
-        invocation: {
-          modelInvocable: skill.enabled === true,
-          userInvocable: skill.enabled === true,
-        },
-        source: skill.source,
-        path: skill.path,
-        provider: PROVIDER_NAME,
-        rank: skill.rank,
-        locator: skill.path,
-      }))
+      /**
+       * 候选由 `skills/modelView.js` 生成，与面板计数同一口径：
+       *
+       *   · 同一真实文件（Junction / symlink）的多个来源折成**一条**，启停取并集；
+       *   · 外部来源停用时不发候选（原生根仍发影子候选去盖原生 provider）；
+       *   · rank 取原生根里的最小值，保证停用仍然压得住 100/200/400/500 的原生条目。
+       */
+      return modelViews(skills.filter((skill) => visibleFor(skill, root)))
+        .filter((view) => view.emittable === true && view.name !== '')
+        .map((view) => ({
+          name: view.name,
+          description: view.description === '' ? `技能：${view.name}` : view.description,
+          invocation: {
+            modelInvocable: view.enabled === true,
+            userInvocable: view.enabled === true,
+          },
+          source: view.source,
+          path: view.path,
+          provider: PROVIDER_NAME,
+          rank: view.rank,
+          locator: view.path,
+        }))
     },
     async get(candidate) {
       const path = String(candidate?.locator ?? candidate?.path ?? '')

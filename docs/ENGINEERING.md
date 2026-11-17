@@ -119,6 +119,23 @@ agent cwd = /Users/joeson/Documents/other                 → 不命中
 **读**也按同一规则：治理 provider 的 `list({cwd})` 只保留本项目根下的项目级技能（停用候选仍在
 自己项目里以 `invocation=false` 出现），不再把别的项目的技能递给这个会话。
 
+### 名字去重与目录别名（`src/skills/modelView.js`）
+
+宿主在**同一层**里按 `candidate.rank` 升序、再按上报顺序排序，然后**按名字去重**，全程不看
+`invocation`（`dsh-skill/lib/index.js` 的 `compareIndexedCandidates` + `collectLayer`）。于是：
+
+- 一条`invocation:false` 的候选只要 rank 更小，就能压掉别的来源里**同名**的启用候选；
+- 同一份技能经 Junction / symlink 出现在两个来源（`~/.agents/skills` → `~/.claude/skills`）时，
+  两个来源各报一条，同样会互相压。
+
+`modelView.js` 是这一层的唯一口径，provider 与面板计数共用：
+
+1. 按 `realPath` 分组：同一真实文件算一个技能，`enabled` 取并集；
+2. 影子候选只为盖原生 provider：**外部目录停用不上报**（原生根必须上报，rank−1）；
+3. 组的 rank 取该文件在原生根里的最小值（没有原生根则取组内最小值）；
+4. `/runtime.skillGovernance.modelView` 发布 `counts`（all / global / 各项目根）与 `shadowedBy`
+   （被谁覆盖），面板直接读，不再自己估一遍。
+
 面板的「当前工作区」默认值同样不猜：`/runtime.currentWorkspace` 只在所有 live 会话覆盖到同一个
 已注册工作区时给注册表路径（MCP 作用域按前缀匹配），`currentWorkspaceRoot` 只在所有 live 会话
 归一化到同一个项目根时给根（技能写盘按 `projectRootOf` 归一化）；其余情况都留空。

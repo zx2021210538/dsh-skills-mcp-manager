@@ -36,6 +36,7 @@ import { createSkill, deleteSkill, renameSkill, updateSkill, writableRoots } fro
 import { registerSkillRoute } from './skills/route.js'
 import { registerSkillReadRoute } from './skills/read.js'
 import { governedSkills } from './skills/governance.js'
+import { modelViewOf } from './skills/modelView.js'
 import { createGovernanceRegistrar, registerGovernanceProvider } from './skills/provider.js'
 import { registerGovernanceRoute } from './skills/governance-route.js'
 import { assignCategory, createCategory, deleteCategory, managerStatePath, readManagerState, renameCategory, setCategoryEnabled, setSkillEnabled, setSourceEnabled, writeManagerState } from './skills/state.js'
@@ -1585,7 +1586,11 @@ export function apply(ctx, config) {
    * provider **不用**这份缓存 —— 它每次 `list()` 现算，永远新鲜；这里只是给 `/runtime`
    * 一个同步可取的快照（`readRuntime` 是同步函数，而扫描必然是异步的）。
    */
-  let skillGovernance = { sources: [], skills: [], scanError: '', statePath: '', providerInstalled: false }
+  let skillGovernance = {
+    sources: [], skills: [], scanError: '', statePath: '', providerInstalled: false,
+    // 首轮扫描完成前也保持同一形状：面板的计数回退与冒烟的检查都按这个键存在与否分支。
+    modelView: { counts: {}, shadowedBy: {} },
+  }
   /** DSH 没有 skills 服务时这里是 false：面板据此说明「启停不会生效」。 */
   let governanceProviderInstalled = false
   /** 让 DSH 的技能目录缓存失效。停用后**必须**调，否则会出现「面板说停用了、模型还能调」。 */
@@ -1605,13 +1610,19 @@ export function apply(ctx, config) {
     const dshHome = resolveDshHome()
     try {
       const snapshot = await governedSkills({ projectRoots: roots, dshHome, agentsHome: agentsHome() })
-      skillGovernance = { ...snapshot, providerInstalled: governanceProviderInstalled }
+      /**
+       * `modelView` 是**同一口径**的模型侧投影：provider 用 `skills/modelView.js` 生成候选，
+       * 这里用它算出「面板该显示几个可见」。两者分头计算过一次，结果就是「面板说可用、
+       * 模型说不可用」（issue #4）；现在只剩这一份规则。
+       */
+      skillGovernance = { ...snapshot, providerInstalled: governanceProviderInstalled, modelView: modelViewOf(snapshot) }
     } catch (error) {
       skillGovernance = {
         sources: [], skills: [],
         scanError: String(error?.message ?? error),
         statePath: managerStatePath(dshHome),
         providerInstalled: governanceProviderInstalled,
+        modelView: { counts: {}, shadowedBy: {} },
       }
       if (process.env.SMP_DEBUG) console.error('[dsh-skills-mcp-manager] governance scan failed', error)
     }

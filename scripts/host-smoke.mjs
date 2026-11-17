@@ -201,6 +201,40 @@ try {
   // so without it a project skill lands in some unrelated ancestor.
   await mkdir(join(stage, '.git'), { recursive: true })
 
+  /**
+   * 目录别名夹具（issue #4）：`<agents>/skills` 指向 `<stage>/ext-claude/skills`，并且只停用
+   * `claude` 来源。于是同一份技能会以 `claude`（停用）与 `user-agents`（启用）两个来源出现 ——
+   * 修复前，停用那侧的影子候选（rank 450）会按名字压掉启用那侧（rank 499），面板说可用、
+   * 模型说不可用。
+   *
+   * `DSH_CLAUDE_HOME` 指到夹具目录，避免读到开发机真实的 `~/.claude`。
+   */
+  const extClaude = join(stage, 'ext-claude')
+  process.env.DSH_CLAUDE_HOME = extClaude
+  await mkdir(join(extClaude, 'skills', 'smoke-aliased'), { recursive: true })
+  await writeFile(
+    join(extClaude, 'skills', 'smoke-aliased', 'SKILL.md'),
+    '---\nname: smoke-aliased\ndescription: 目录别名夹具\n---\n\n# 别名\n',
+  )
+  await mkdir(join(stage, 'agents'), { recursive: true })
+  const agentsSkills = join(stage, 'agents', 'skills')
+  if (process.platform === 'win32') {
+    execFileSync('cmd', ['/c', 'mklink', '/J', agentsSkills, join(extClaude, 'skills')], { stdio: 'ignore' })
+  } else {
+    await symlink(join(extClaude, 'skills'), agentsSkills, 'dir')
+  }
+  // 治理状态：只停用 Claude Code 来源（技能自身仍是开的）。
+  await mkdir(join(home, 'dsh-skills-mcp-manager'), { recursive: true })
+  await writeFile(join(home, 'dsh-skills-mcp-manager', 'state.json'), JSON.stringify({
+    version: 1,
+    sources: { claude: { enabled: false } },
+    skills: {},
+    categories: {},
+    trash: [],
+    repositories: [],
+    installs: [],
+  }))
+
   // The profile the Host writes into. `applyRowOp` resolves it through the
   // `profileContext` service, so this is the seam that keeps the smoke off the real profile.
   const profileDir = join(stage, 'profile')
@@ -651,6 +685,9 @@ try {
    */
   const rootProvider = governanceProviders[0]
   note(rootProvider !== undefined, '技能治理 provider 注册到了 root（skills 服务存在时）')
+  /** 本次运行的真实治理快照：别名夹具是否生效、模型侧投影都在它上面验证。 */
+  const modelGovernance = (await readRuntime()).skillGovernance
+  const modelView = modelGovernance?.modelView
   if (rootProvider !== undefined) {
     const inStage = await rootProvider.list({ cwd: stage })
     note(inStage.some((candidate) => candidate.name === 'smoke-project-skill'),
@@ -661,6 +698,53 @@ try {
     const withoutCwd = await rootProvider.list()
     note(!withoutCwd.some((candidate) => candidate.name === 'smoke-project-skill'),
       '没有 cwd 时不列项目级技能（与 DSH 原生 provider 一致）')
+
+    /**
+     * 目录别名（issue #4）：`claude` 来源停用、`user-agents` 指向同一个真实目录且启用。
+     * 同一个真实文件只能上报一条候选，且必须是**可调用**的 —— 停用那侧的影子候选不能再赢。
+     *
+     * 先证明夹具真的生效（claude 来源与它那行确实停用）：否则「可调用」这条断言在 claude
+     * 仍然启用时也会绿 —— rank 来自原生行，与 claude 的启停无关，等于什么都没验。
+     */
+    const claudeGroup = modelGovernance?.sources?.find((group) => group.key === 'claude')
+    const claudeRow = modelGovernance?.skills?.find((skill) => skill.name === 'smoke-aliased' && skill.source === 'claude')
+    note(claudeGroup?.enabled === false && claudeRow?.enabled === false,
+      '别名夹具生效：claude 来源与它那行技能都处于停用状态')
+    const aliased = inStage.find((candidate) => candidate.name === 'smoke-aliased')
+    note(aliased !== undefined, '同一真实文件经两个来源出现时仍上报一条别名候选')
+    note(aliased?.source === 'user-agents',
+      `别名候选由启用的那条来源提供（收到 ${aliased?.source}）`)
+    note(aliased?.invocation?.modelInvocable === true,
+      '停用 claude 来源后，user-agents 里同一份技能仍然可调用（issue #4）')
+    note(aliased?.rank === 499,
+      `别名候选的 rank 取原生根 499，既压住原生 500 又不过度优先（收到 ${aliased?.rank}）`)
+  }
+
+  /**
+   * 面板计数与 provider 候选**同一口径**：`/runtime.skillGovernance.modelView` 必须存在，
+   * 且它的「模型可见」数等于 provider 真正交出去的可见候选数（issue #4 的另一半）。
+   */
+  note(modelView !== undefined && typeof modelView.counts === 'object',
+    '治理快照带模型侧投影（面板与模型同一口径）')
+  if (modelView !== undefined && rootProvider !== undefined) {
+    /**
+     * 按 `counts.all` 口径取并集：它统计**所有范围**，而一次 `list({cwd})` 只有「全局 ∪ 那个
+     * 项目根」。冒烟里有两个已登记根（stage 与 /p/smoke），所以逐个取并集再比，免得别的根里
+     * 恰好有技能时误红。
+     */
+    const visibleNames = new Set()
+    for (const cwd of [stage, '/p/smoke']) {
+      for (const candidate of await rootProvider.list({ cwd })) {
+        if (candidate.invocation?.modelInvocable === true) visibleNames.add(candidate.name)
+      }
+    }
+    const counted = modelView.counts?.all
+    note(counted?.visible === visibleNames.size,
+      `模型可见数与 provider 候选一致（${counted?.visible} vs ${visibleNames.size}）`)
+    const sum = (counted?.visible ?? 0) + (counted?.shadowed ?? 0)
+      + (counted?.disabledSelf ?? 0) + (counted?.disabledSource ?? 0)
+    note(counted !== undefined && sum === counted.total,
+      '模型侧计数自洽（可见 + 三种原因 = 真实技能数）')
   }
 
   // ── 3. MCP rows: file CRUD, and the answer already contains the new row ──────────────

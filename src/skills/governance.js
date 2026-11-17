@@ -46,9 +46,24 @@ export async function governedSkills(options = {}) {
             name: skill.name,
             description: skill.description ?? '',
             path: skill.path,
+            /**
+             * 真实路径：同一份技能经 Junction / symlink 出现在两个来源时，模型侧只算一个。
+             * 面板仍按来源分行展示（用户要能分别管两个根），合并发生在 `skills/modelView.js`。
+             *
+             * **只在解析结果与自身不同时才带**（别名行）：普通行省掉这份重复的长字符串，
+             * `/runtime` 不必为「没有别名」付双倍路径体积。
+             */
+            realPath: typeof skill.realPath === 'string' && skill.realPath !== skill.path ? skill.realPath : '',
             source: source.key,
             scope: source.scope,
             rank: source.rank,
+            /**
+             * 这个来源是不是 DSH 原生 provider 也读的根。
+             *
+             * 决定停用时要不要上报影子候选：原生根必须盖住原生条目（rank − 1），外部目录
+             * 只有本插件列，停用就不该再上报（否则会按名字压掉别的来源里同名但不同的技能）。
+             */
+            native: source.native === true,
             readonly: source.readonly,
           }
           // 必须在对象建好之后再算：`effectiveEnabled` 要把 entry 本身作为策略键的一部分。
