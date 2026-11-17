@@ -136,6 +136,10 @@ agent cwd = /Users/joeson/Documents/other                 → 不命中
 4. `/runtime.skillGovernance.modelView` 发布 `counts`（all / global / 各项目根）与 `shadowedBy`
    （被谁覆盖），面板直接读，不再自己估一遍。
 
+扫描侧（`src/skills/discover.js`）与 DSH 原生 provider 对齐：**根级**别名解析一次真实根，**条目**
+是软链 / Junction 时 `stat` 跟随并按目标类型处理（断链跳过），两种层级都会把它的真实路径带进快照，
+供上面的分组使用。所以「面板看到的技能」与「模型能加载的技能」在软链场景下也是同一份。
+
 面板的「当前工作区」默认值同样不猜：`/runtime.currentWorkspace` 只在所有 live 会话覆盖到同一个
 已注册工作区时给注册表路径（MCP 作用域按前缀匹配），`currentWorkspaceRoot` 只在所有 live 会话
 归一化到同一个项目根时给根（技能写盘按 `projectRootOf` 归一化）；其余情况都留空。

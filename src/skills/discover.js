@@ -106,7 +106,18 @@ async function readSkillFile(file, name, base, realPath = '') {
   }
 }
 
-/** Scan one root; a missing root simply yields nothing. */
+/**
+ * Scan one root; a missing root simply yields nothing.
+ *
+ * ## 软链 / Junction
+ *
+ * 条目本身是软链时**跟进去**（`stat` 跟随链接），与 DSH 原生 provider 的做法一致：它会对
+ * `isSymbolicLink()` 的条目再 stat 一次，当作目录或文件。跳过的话就会出现 issue #4 的
+ * 另一面 —— 模型能调用，面板里却没有这一行（不能启停、计数偏少）。
+ *
+ * `readdir` 的 Dirent 对软链报 `isSymbolicLink`（既不是 `isDirectory` 也不是 `isFile`），
+ * 所以这里只有软链条目需要额外一次 stat；普通条目仍是零成本。
+ */
 export async function scanSkillRoot(root) {
   let entries = []
   try {
@@ -117,29 +128,43 @@ export async function scanSkillRoot(root) {
   /**
    * 真实根**只解析一次**。
    *
-   * 条目级的 Junction / symlink 不会走到这里（`readdir` 对它们报 `isSymbolicLink`，
-   * 既不是 `isDirectory` 也不是 `isFile`，与 DSH 原生 provider 以外的历史行为一致），
-   * 所以「真实根 + 条目名」与逐文件 `realpath` 对能被扫到的行等价；而逐文件解析是**同步**
-   * 调用，100 个技能每次扫描多阻塞约 20ms，被 1 秒 TTL 的快照放大成可感知的卡顿。
+   * 逐文件 `realpath` 是**同步**调用，100 个技能每次扫描多阻塞约 20ms，被 1 秒 TTL 的快照
+   * 放大成可感知的卡顿；「真实根 + 条目名」对普通条目等价，只有软链条目才需要单独解析。
    */
   const realRoot = safeRealPath(root.path)
   const aliased = realRoot !== '' && realRoot !== root.path
   const found = []
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue
-    if (entry.isDirectory()) {
-      const file = join(root.path, entry.name, 'SKILL.md')
-      const realPath = aliased ? join(realRoot, entry.name, 'SKILL.md') : ''
+    const at = join(root.path, entry.name)
+    /** `dir` / `file` / `''`（不是技能，或断链）。软链按目标类型算。 */
+    let kind = entry.isDirectory() ? 'dir' : (entry.isFile() ? 'file' : '')
+    /** 软链自己的真实路径；普通条目留空（用 `realRoot` 推导即可）。 */
+    let entryReal = ''
+    if (entry.isSymbolicLink()) {
+      try {
+        const target = await stat(at)
+        kind = target.isDirectory() ? 'dir' : (target.isFile() ? 'file' : '')
+        entryReal = safeRealPath(at)
+      } catch {
+        // 断链（目标不存在）：跳过，不要让一次扫描失败
+        continue
+      }
+    }
+    if (kind === 'dir') {
+      const file = join(at, 'SKILL.md')
+      const realPath = entryReal !== ''
+        ? join(entryReal, 'SKILL.md')
+        : (aliased ? join(realRoot, entry.name, 'SKILL.md') : '')
       try {
         found.push(await readSkillFile(file, entry.name, root, realPath))
       } catch {
         // a directory without SKILL.md is not a skill
       }
-    } else if (entry.isFile() && entry.name.endsWith('.md')) {
-      const file = join(root.path, entry.name)
-      const realPath = aliased ? join(realRoot, entry.name) : ''
+    } else if (kind === 'file' && entry.name.endsWith('.md')) {
+      const realPath = entryReal !== '' ? entryReal : (aliased ? join(realRoot, entry.name) : '')
       try {
-        found.push(await readSkillFile(file, entry.name.replace(/\.md$/, ''), root, realPath))
+        found.push(await readSkillFile(at, entry.name.replace(/\.md$/, ''), root, realPath))
       } catch {
         // unreadable file: skip
       }

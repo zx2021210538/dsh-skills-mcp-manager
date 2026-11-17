@@ -15,7 +15,7 @@
 起已发布 20 多个版本，能力差异见下面第一节的对照表；大到这个程度已经不适合
 再往原仓库提补丁，所以我们把它作为独立插件继续维护。
 
-当前版本 `0.6.8`。测试 766 项（762 通过 / 4 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
+当前版本 `0.6.9`。测试 771 项（766 通过 / 5 项按平台跳过）。npm 上发布为 `dsh-skills-mcp-manager`，由 GitHub Actions 的 OIDC Trusted Publishing 自动发包。
 
 ---
 

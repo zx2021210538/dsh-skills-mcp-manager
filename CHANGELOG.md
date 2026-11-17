@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.6.9 — 条目级软链 / Junction 的技能也进面板
+
+> 0.6.8 修好了「同一份技能经根级别名出现在两个来源」；但**条目本身**是软链时（例如
+> `~/.claude/skills/foo` 指向仓库里的技能目录），扫描会把它当"不是目录"跳过：模型那边由 DSH
+> 原生 provider 跟进去照样能调用，面板里却没有这一行——不能启停、也不计数。这一版补上。
+> 升级后需重启 DSH 让新 Host 生效。
+
+### 1. 扫描跟随条目级软链（与 DSH 原生 provider 一致）
+
+- `readdir` 对软链报 `isSymbolicLink`（既不是目录也不是文件），原来这种条目被直接跳过。现在
+  会 `stat` 跟随链接，按目标类型当作技能目录或平铺 `.md` 处理。
+- **断链**（目标不存在）跳过，不影响同目录里其它技能；一次扫描不会因为一个坏链失败。
+- 条目是软链时用它自己的真实路径参与去重：两个目录软链到同一份技能，仍然合并成一个技能
+  （启停取并集，与 0.6.8 的根级别名同一套规则）。
+- 成本：只有软链条目多一次 `stat`；普通条目仍是零额外调用（不是逐文件 `realpath`）。
+
+### 2. 面板与模型的技能列表重新对齐
+
+- 面板的磁盘列表（`/runtime.skills`）与模型侧的候选现在都能看到软链技能，不再出现
+  「模型能用、面板里找不到、也关不掉」。
+- README 的「已知边界」里删掉了这条限制；`customSkillDirs`（rank 300）与 runtime 技能（250）
+  仍是已知边界（无法可靠接管，原因见 `src/skills/modelView.js`）。
+
+### 验证
+
+- `npm test`：**771 项（766 通过 / 5 项按平台跳过 / 0 失败）**；`npm run build`、`npm run check:names`、`npm run gate` 通过。
+- Host 冒烟（真实 DSH 运行时）新增条目级 Junction 夹具：面板磁盘列表与 provider 候选都能看到该技能。
+- 新增 `test/skills.discoverLinks.test.mjs`（软链目录 / 断链 / 平铺 md / 两个来源同一目标）与
+  `test/skills.modelView.test.mjs` 里的「条目级软链合并」用例。
+
 ## 0.6.8 — 目录别名与同名覆盖：修掉「面板说启用、模型说不可用」（issue #4）
 
 > 起因是 issue #4：`~/.agents/skills` 是指向 `~/.claude/skills` 的 Windows Junction，停用

@@ -286,3 +286,32 @@ test('真实别名：同名但真实文件不同时不合并，停用的外部�
   assert.deepEqual(modelViewOf(snapshot).shadowedBy, {},
     '停用的那份不算「被覆盖」：它自己的原因是来源停用，重新打开该来源就会赢回来')
 })
+
+test('条目级软链：两个来源各软链同一份技能时合并成一个，停用一侧不影响另一侧', async () => {
+  /**
+   * 0.6.9 起条目级的软链也会被扫描进来，所以「同一份技能经两个软链出现」与根级别名同构：
+   * 真实路径相同 → 模型侧只算一个，启停取并集。
+   */
+  const home = mkdtempSync(join(tmpdir(), 'smp-modelview-entry-'))
+  const shared = join(home, 'shared', 'linked-skill')
+  makeSkill(join(home, 'shared'), 'linked-skill')
+  mkdirSync(join(home, '.claude', 'skills'), { recursive: true })
+  mkdirSync(join(home, '.agents', 'skills'), { recursive: true })
+  linkDirectory(join(home, '.claude', 'skills', 'linked-skill'), shared)
+  linkDirectory(join(home, '.agents', 'skills', 'linked-skill'), shared)
+  const dshHome = join(home, '.dsh')
+  mkdirSync(dshHome, { recursive: true })
+  const state = emptyManagerState()
+  setSourceEnabled(state, 'claude', false)
+  const snapshot = await governedSkills({
+    projectRoots: [], dshHome, agentsHome: join(home, '.agents'), env: {}, home, state,
+  })
+
+  // 面板两行（两个来源各一行），模型一条候选、可调用。
+  assert.equal(snapshot.skills.filter((skill) => skill.name === 'linked-skill').length, 2)
+  const provider = createGovernanceProvider({ snapshot: async () => snapshot })
+  const candidates = (await provider.list({ cwd: home })).filter((candidate) => candidate.name === 'linked-skill')
+  assert.equal(candidates.length, 1, '同一份真实文件只上报一条候选')
+  assert.equal(candidates[0].invocation.modelInvocable, true, '启用的那条来源（user-agents）仍然可用')
+  assert.deepEqual(modelViewOf(snapshot).counts.all, { total: 1, visible: 1, shadowed: 0, disabledSelf: 0, disabledSource: 0 })
+})

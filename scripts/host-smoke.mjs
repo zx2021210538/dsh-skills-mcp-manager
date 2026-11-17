@@ -235,6 +235,24 @@ try {
     installs: [],
   }))
 
+  /**
+   * 条目级软链夹具（0.6.9）：项目根下的 `.agents/skills/smoke-linked` 是指向
+   * `<stage>/shared/smoke-linked` 的目录链接。DSH 原生 provider 会跟进去、模型能加载，
+   * 所以面板的列表里也必须有它 —— 否则又是「模型能用、面板没有」。
+   */
+  await mkdir(join(stage, 'shared', 'smoke-linked'), { recursive: true })
+  await writeFile(
+    join(stage, 'shared', 'smoke-linked', 'SKILL.md'),
+    '---\nname: smoke-linked\ndescription: 条目级软链夹具\n---\n\n# 软链\n',
+  )
+  await mkdir(join(stage, '.agents', 'skills'), { recursive: true })
+  const linkedEntry = join(stage, '.agents', 'skills', 'smoke-linked')
+  if (process.platform === 'win32') {
+    execFileSync('cmd', ['/c', 'mklink', '/J', linkedEntry, join(stage, 'shared', 'smoke-linked')], { stdio: 'ignore' })
+  } else {
+    await symlink(join(stage, 'shared', 'smoke-linked'), linkedEntry, 'dir')
+  }
+
   // The profile the Host writes into. `applyRowOp` resolves it through the
   // `profileContext` service, so this is the seam that keeps the smoke off the real profile.
   const profileDir = join(stage, 'profile')
@@ -718,6 +736,15 @@ try {
       '停用 claude 来源后，user-agents 里同一份技能仍然可调用（issue #4）')
     note(aliased?.rank === 499,
       `别名候选的 rank 取原生根 499，既压住原生 500 又不过度优先（收到 ${aliased?.rank}）`)
+
+    /**
+     * 条目级软链（0.6.9）：面板的磁盘列表与 provider 候选必须都能看到它 ——
+     * 只在一侧出现就是「模型能用 / 面板没有」。
+     */
+    const linkedCandidate = inStage.find((candidate) => candidate.name === 'smoke-linked')
+    note(linkedCandidate !== undefined, '条目级软链的技能也上报给模型')
+    const linkedDiscovered = (await readRuntime()).skills?.some((skill) => skill.name === 'smoke-linked')
+    note(linkedDiscovered === true, '条目级软链的技能也出现在面板的磁盘列表里（0.6.9）')
   }
 
   /**
